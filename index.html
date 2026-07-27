@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ben's Quizzes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d1117;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 2.4rem;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.subtitle {
+  color: #8b949e;
+  text-align: center;
+  margin-bottom: 48px;
+  font-size: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.card-icon {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.card-desc {
+  font-size: 0.85rem;
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+.card-tag {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  align-self: flex-start;
+  font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Ben's Quizzes</h1>
+  <p class="subtitle">Interactive quizzes — network graphs, audio mashups, and more</p>
+
+  <div class="grid">
+    <a class="card" href="breaking-bad.html" style="border-color: rgba(78, 204, 163, 0.3);">
+      <div class="card-icon" style="background: rgba(78, 204, 163, 0.12);">🧪</div>
+      <div class="card-title" style="color: #4ecca3;">Breaking Bad</div>
+      <div class="card-desc">Identify characters from their network of relationships. Click nodes, guess names.</div>
+      <span class="card-tag" style="background: rgba(78, 204, 163, 0.12); color: #4ecca3;">Network Graph</span>
+    </a>
+
+    <a class="card" href="europe.html" style="border-color: rgba(91, 155, 213, 0.3);">
+      <div class="card-icon" style="background: rgba(91, 155, 213, 0.12);">🇪🇺</div>
+      <div class="card-title" style="color: #5b9bd5;">Europe Borders</div>
+      <div class="card-desc">Name European countries from their border connections. Geography meets graph theory.</div>
+      <span class="card-tag" style="background: rgba(91, 155, 213, 0.12); color: #5b9bd5;">Network Graph</span>
+    </a>
+
+    <a class="card" href="world.html" style="border-color: rgba(99, 179, 237, 0.3);">
+      <div class="card-icon" style="background: rgba(99, 179, 237, 0.12);">🌍</div>
+      <div class="card-title" style="color: #63b3ed;">World Borders</div>
+      <div class="card-desc">All 198 countries. Node size = area, edge thickness = border length. The big one.</div>
+      <span class="card-tag" style="background: rgba(99, 179, 237, 0.12); color: #63b3ed;">Network Graph</span>
+    </a>
+
+    <a class="card" href="pokemon.html" style="border-color: rgba(255, 209, 102, 0.3);">
+      <div class="card-icon" style="background: rgba(255, 209, 102, 0.12);">⚡</div>
+      <div class="card-title" style="color: #ffd166;">Pokémon</div>
+      <div class="card-desc">Identify Pokémon from their type relationships and battle connections.</div>
+      <span class="card-tag" style="background: rgba(255, 209, 102, 0.12); color: #ffd166;">Network Graph</span>
+    </a>
+
+    <a class="card" href="harry-potter.html" style="border-color: rgba(155, 93, 229, 0.3);">
+      <div class="card-icon" style="background: rgba(155, 93, 229, 0.12);">🪄</div>
+      <div class="card-title" style="color: #9b5de5;">Harry Potter</div>
+      <div class="card-desc">Name characters from the wizarding world by their connections to each other.</div>
+      <span class="card-tag" style="background: rgba(155, 93, 229, 0.12); color: #9b5de5;">Network Graph</span>
+    </a>
+
+    <a class="card" href="eurovision.html" style="border-color: rgba(255, 107, 139, 0.3);">
+      <div class="card-icon" style="background: rgba(255, 107, 139, 0.12);">🎤</div>
+      <div class="card-title" style="color: #ff6b8b;">Eurovision</div>
+      <div class="card-desc">Eurovision entries connected by voting patterns, genres, and countries.</div>
+      <span class="card-tag" style="background: rgba(255, 107, 139, 0.12); color: #ff6b8b;">Network Graph</span>
+    </a>
+
+    <a class="card" href="music.html" style="border-color: rgba(168, 85, 247, 0.3);">
+      <div class="card-icon" style="background: rgba(168, 85, 247, 0.12);">🎵</div>
+      <div class="card-title" style="color: #a855f7;">Pitch Scramble</div>
+      <div class="card-desc">3 songs spliced together, segments sorted by pitch. Name all the tracks in each mashup.</div>
+      <span class="card-tag" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">Audio Mashup</span>
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

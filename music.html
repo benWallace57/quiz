@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Scramble Mashup Quiz</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d1117;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: #8b949e;
+  font-size: 0.9rem;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+#layout {
+  display: flex;
+  gap: 20px;
+  max-width: 750px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+#quiz-container {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  padding: 40px;
+  flex: 1;
+  text-align: center;
+}
+
+#track-selector {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 12px;
+  width: 160px;
+  flex-shrink: 0;
+}
+
+#track-selector h4 {
+  color: #8b949e;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #8b949e;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.track-item:hover { background: #21262d; }
+.track-item.active { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3); color: #e0e0e0; }
+.track-item.correct { color: #56d364; }
+.track-item.wrong { color: #f85149; }
+
+.track-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #21262d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.track-item.correct .track-num { background: rgba(86, 211, 100, 0.2); }
+.track-item.wrong .track-num { background: rgba(248, 81, 73, 0.2); }
+
+.track-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#score {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: rgba(22, 27, 34, 0.95);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+#score span { color: #a855f7; font-weight: 600; }
+
+#status {
+  min-height: 24px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #8b949e;
+}
+#status.loading { color: #f0883e; }
+#status.ready { color: #56d364; }
+#status.error { color: #f85149; }
+
+.play-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.play-btn:hover { background: rgba(168, 85, 247, 0.2); transform: scale(1.05); }
+.play-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+#guess-area { margin-top: 24px; }
+
+#guess-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#guess-input:focus { border-color: #a855f7; }
+#guess-input:disabled { opacity: 0.5; }
+
+#guess-feedback {
+  min-height: 20px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+.correct { color: #56d364; }
+.wrong { color: #f85149; }
+
+#guessed-list {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #56d364;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn:hover { background: #30363d; }
+.btn.primary { background: #a855f7; border-color: #a855f7; color: #fff; }
+.btn.primary:hover { background: #9333ea; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+#reveal-area {
+  display: none;
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 10px;
+  text-align: left;
+}
+#reveal-area h3 { color: #a855f7; font-size: 1rem; margin-bottom: 8px; }
+#reveal-area .song-line { color: #8b949e; font-size: 0.85rem; margin-bottom: 4px; }
+
+#progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #21262d;
+  border-radius: 2px;
+  margin-top: 16px;
+  overflow: hidden;
+  display: none;
+}
+#progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a855f7, #6366f1);
+  width: 0%;
+  transition: width 0.1s;
+}
+
+@media (max-width: 700px) {
+  #layout { flex-direction: column-reverse; align-items: stretch; }
+  #track-selector { width: 100%; display: flex; flex-wrap: wrap; gap: 4px; }
+  #track-selector h4 { width: 100%; }
+  .track-item { flex: 0 0 auto; }
+  .track-label { display: none; }
+}
+</style>
+</head>
+<body>
+
+<h1>Pitch Scramble</h1>
+<p class="subtitle">3 songs spliced together, segments interleaved. Name all 3!</p>
+
+<div id="score">Score: <span id="score-val">0</span> / <span id="score-total">5</span></div>
+
+<div id="layout">
+  <div id="quiz-container">
+    <div id="status" class="loading">Loading...</div>
+
+    <button class="play-btn" id="play-btn" disabled>&#9654;</button>
+
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+
+    <div id="guess-area">
+      <input type="text" id="guess-input" placeholder="Name a song in the mashup..." disabled autocomplete="off">
+      <div id="guess-feedback"></div>
+      <div id="guessed-list"></div>
+      <div class="btn-row">
+        <button class="btn" id="give-up-btn" disabled>Give Up</button>
+        <button class="btn primary" id="next-btn" style="display:none">Next</button>
+      </div>
+    </div>
+
+    <div id="reveal-area">
+      <h3>The songs were:</h3>
+      <div id="reveal-songs"></div>
+    </div>
+  </div>
+
+  <div id="track-selector">
+    <h4>Questions</h4>
+  </div>
+</div>
+
+<script>
+const QUIZ_DATA_URL = 'music_quiz_data.json';
+const MAX_MASHUP_SECONDS = 10;
+
+let audioCtx = null;
+let mashups = [];
+let currentQ = 0;
+let score = 0;
+let scrambledBuffer = null;
+let currentSource = null;
+let isPlaying = false;
+let pauseOffset = 0;
+let playStartTime = 0;
+let resolved = false;
+let results = [];
+let guessed = new Set();
+
+async function init() {
+  const resp = await fetch(QUIZ_DATA_URL);
+  const data = await resp.json();
+  mashups = data.mashups;
+  results = new Array(mashups.length).fill(null);
+  document.getElementById('score-total').textContent = mashups.length;
+  buildSelector();
+  loadQuestion(0);
+}
+
+function buildSelector() {
+  const container = document.getElementById('track-selector');
+  mashups.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'track-item' + (i === 0 ? ' active' : '');
+    item.innerHTML = `<span class="track-num">${i + 1}</span><span class="track-label">Mashup ${i + 1}</span>`;
+    item.addEventListener('click', () => { currentQ = i; loadQuestion(i); });
+    container.appendChild(item);
+  });
+}
+
+function updateSelector() {
+  const items = document.querySelectorAll('.track-item');
+  items.forEach((item, i) => {
+    item.classList.remove('active', 'correct', 'wrong');
+    if (i === currentQ) item.classList.add('active');
+    if (results[i] === 'correct') item.classList.add('correct');
+    else if (results[i] === 'wrong') item.classList.add('wrong');
+  });
+}
+
+async function loadQuestion(idx) {
+  resolved = false;
+  scrambledBuffer = null;
+  pauseOffset = 0;
+  guessed = new Set();
+  stopPlayback();
+
+  const mashup = mashups[idx];
+  const status = document.getElementById('status');
+  const playBtn = document.getElementById('play-btn');
+  const guessInput = document.getElementById('guess-input');
+
+  status.textContent = 'Loading audio...';
+  status.className = 'loading';
+  playBtn.disabled = true;
+  playBtn.innerHTML = '&#9654;';
+  guessInput.disabled = true;
+  guessInput.value = '';
+  document.getElementById('give-up-btn').disabled = true;
+  document.getElementById('guess-feedback').textContent = '';
+  document.getElementById('guessed-list').textContent = '';
+  document.getElementById('reveal-area').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('progress-bar').style.display = 'block';
+  document.getElementById('progress-fill').style.width = '0%';
+
+  updateSelector();
+
+  if (results[idx] !== null) resolved = true;
+
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const songs = mashup.songs;
+    const buffers = [];
+    for (let i = 0; i < songs.length; i++) {
+      status.textContent = `Fetching song ${i + 1}/3...`;
+      document.getElementById('progress-fill').style.width = `${(i + 1) * 25}%`;
+      const resp = await fetch(songs[i].previewUrl);
+      const ab = await resp.arrayBuffer();
+      buffers.push(await audioCtx.decodeAudioData(ab));
+    }
+
+    status.textContent = 'Building mashup...';
+    document.getElementById('progress-fill').style.width = '85%';
+
+    scrambledBuffer = buildMashup(buffers, songs);
+
+    document.getElementById('progress-fill').style.width = '100%';
+    status.textContent = 'Ready! Press play to hear the mashup.';
+    status.className = 'ready';
+    playBtn.disabled = false;
+    guessInput.disabled = resolved;
+    document.getElementById('give-up-btn').disabled = resolved;
+
+    if (resolved) showReveal(idx);
+    if (!resolved) guessInput.focus();
+    setTimeout(() => { document.getElementById('progress-bar').style.display = 'none'; }, 500);
+
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    status.className = 'error';
+    document.getElementById('progress-bar').style.display = 'none';
+    console.error(err);
+  }
+}
+
+function buildMashup(buffers, songs) {
+  const sr = buffers[0].sampleRate;
+  const channels = buffers[0].numberOfChannels;
+  const n = songs.length;
+  const maxSamples = Math.floor(MAX_MASHUP_SECONDS * sr);
+
+  // Get segment queues for each song (in scrambled order)
+  const queues = songs.map((song, i) => {
+    const segs = song.segments;
+    return song.order.map(idx => {
+      if (idx >= segs.length - 1) return null;
+      const start = Math.floor(segs[idx] * sr);
+      const end = Math.min(Math.floor(segs[idx + 1] * sr), buffers[i].length);
+      return { buf: i, start, end };
+    }).filter(Boolean);
+  });
+
+  // Interleave round-robin, stop at 10s
+  const segments = [];
+  let totalSamples = 0;
+  const maxRounds = Math.max(...queues.map(q => q.length));
+  outer:
+  for (let round = 0; round < maxRounds; round++) {
+    for (let t = 0; t < n; t++) {
+      if (round >= queues[t].length) continue;
+      const seg = queues[t][round];
+      const len = seg.end - seg.start;
+      if (totalSamples + len > maxSamples) break outer;
+      segments.push(seg);
+      totalSamples += len;
+    }
+  }
+
+  const outBuffer = audioCtx.createBuffer(channels, totalSamples, sr);
+  let writePos = 0;
+  for (const seg of segments) {
+    const srcBuf = buffers[seg.buf];
+    const len = seg.end - seg.start;
+    for (let ch = 0; ch < channels; ch++) {
+      const src = srcBuf.getChannelData(ch);
+      const dst = outBuffer.getChannelData(ch);
+      for (let i = 0; i < len; i++) {
+        dst[writePos + i] = src[seg.start + i];
+      }
+    }
+    writePos += len;
+  }
+  return outBuffer;
+}
+
+function playBuffer(buffer, offset) {
+  if (currentSource) { try { currentSource.stop(); } catch(e) {} currentSource = null; }
+  currentSource = audioCtx.createBufferSource();
+  currentSource.buffer = buffer;
+  currentSource.connect(audioCtx.destination);
+  currentSource.start(0, offset || 0);
+  playStartTime = audioCtx.currentTime - (offset || 0);
+  isPlaying = true;
+  document.getElementById('play-btn').innerHTML = '&#10074;&#10074;';
+  currentSource.onended = () => {
+    if (isPlaying) {
+      isPlaying = false;
+      currentSource = null;
+      pauseOffset = 0;
+      document.getElementById('play-btn').innerHTML = '&#9654;';
+    }
+  };
+}
+
+function pausePlayback() {
+  if (currentSource && isPlaying) {
+    isPlaying = false;
+    pauseOffset = audioCtx.currentTime - playStartTime;
+    try { currentSource.stop(); } catch(e) {}
+    currentSource = null;
+    document.getElementById('play-btn').innerHTML = '&#9654;';
+  }
+}
+
+function stopPlayback() {
+  if (currentSource) { try { currentSource.stop(); } catch(e) {} currentSource = null; }
+  isPlaying = false;
+  pauseOffset = 0;
+}
+
+function togglePlay() {
+  if (!scrambledBuffer) return;
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (isPlaying) {
+    pausePlayback();
+  } else {
+    playBuffer(scrambledBuffer, pauseOffset);
+  }
+}
+
+function fuzzyMatch(guess, answer) {
+  const normalize = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  const g = normalize(guess);
+  const a = normalize(answer);
+  if (g === a) return true;
+  if (a.includes(g) && g.length > 3) return true;
+  if (g.includes(a)) return true;
+  const words = a.split(/\s+/);
+  const guessWords = g.split(/\s+/);
+  let matches = 0;
+  for (const w of words) {
+    if (guessWords.some(gw => gw === w || (w.length > 3 && gw.includes(w)) || (gw.length > 3 && w.includes(gw)))) matches++;
+  }
+  return matches >= words.length * 0.6 && matches > 0;
+}
+
+function showReveal(idx) {
+  const mashup = mashups[idx];
+  const revealSongs = document.getElementById('reveal-songs');
+  revealSongs.innerHTML = mashup.songs.map(s => `<div class="song-line">${s.answer} — ${s.artist}</div>`).join('');
+  document.getElementById('reveal-area').style.display = 'block';
+  document.getElementById('guess-input').disabled = true;
+  document.getElementById('give-up-btn').disabled = true;
+  if (currentQ < mashups.length - 1) document.getElementById('next-btn').style.display = 'inline-block';
+}
+
+function revealAnswer(wasCorrect) {
+  resolved = true;
+  results[currentQ] = wasCorrect ? 'correct' : 'wrong';
+  if (wasCorrect) {
+    score++;
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('guess-feedback').textContent = 'All 3 correct!';
+    document.getElementById('guess-feedback').className = 'correct';
+  } else {
+    document.getElementById('guess-feedback').textContent = 'The songs were:';
+    document.getElementById('guess-feedback').className = 'wrong';
+  }
+  showReveal(currentQ);
+  updateSelector();
+}
+
+document.getElementById('play-btn').addEventListener('click', togglePlay);
+
+document.getElementById('guess-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !resolved) {
+    const guess = e.target.value.trim();
+    if (!guess) return;
+    const songs = mashups[currentQ].songs;
+    let matched = -1;
+    for (let i = 0; i < songs.length; i++) {
+      if (!guessed.has(i) && fuzzyMatch(guess, songs[i].answer)) { matched = i; break; }
+    }
+    if (matched >= 0) {
+      guessed.add(matched);
+      e.target.value = '';
+      const feedback = document.getElementById('guess-feedback');
+      feedback.textContent = `${songs[matched].answer} (${guessed.size}/3)`;
+      feedback.className = 'correct';
+      document.getElementById('guessed-list').textContent = [...guessed].map(i => songs[i].answer).join(', ');
+      if (guessed.size === 3) revealAnswer(true);
+    } else {
+      document.getElementById('guess-feedback').textContent = 'Not quite...';
+      document.getElementById('guess-feedback').className = 'wrong';
+    }
+  }
+});
+
+document.getElementById('give-up-btn').addEventListener('click', () => { if (!resolved) revealAnswer(false); });
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  currentQ++;
+  if (currentQ < mashups.length) loadQuestion(currentQ);
+});
+
+init();
+</script>
+</body>
+</html>

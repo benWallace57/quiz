@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Eurovision Voting Network Quiz</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d1117;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  gap: 12px;
+}
+
+#header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e040a0;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+#score {
+  font-size: 13px;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+#score .guessed { color: #e040a0; font-weight: 600; }
+#score .revealed { color: #e07a5f; font-weight: 600; }
+
+#network-container { width: calc(100vw - 240px); height: 100vh; }
+
+#sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 240px;
+  height: 100vh;
+  padding: 52px 12px 12px;
+  overflow-y: auto;
+  background: rgba(13, 17, 23, 0.97);
+  border-left: 1px solid rgba(255,255,255,0.06);
+  z-index: 50;
+}
+
+#sidebar h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+#sidebar-search {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+}
+
+#sidebar-search:focus { border-color: #e040a0; }
+#sidebar-search::placeholder { color: #555; }
+
+#guess-panel {
+  position: fixed;
+  bottom: 24px;
+  left: calc((100vw - 240px) / 2);
+  transform: translateX(-50%);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: rgba(20, 24, 33, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#guess-panel.visible { display: flex; }
+#guess-hint { font-size: 13px; color: #888; max-width: 400px; text-align: center; }
+#attempts-display { font-size: 12px; color: #e07a5f; }
+
+#reset-layout-btn {
+  position: fixed;
+  top: 52px;
+  left: calc((100vw - 240px) / 2);
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 8px 16px;
+  border: 1px solid rgba(224, 64, 160, 0.4);
+  border-radius: 8px;
+  background: rgba(224, 64, 160, 0.1);
+  color: #e040a0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#reset-layout-btn:hover { background: rgba(224, 64, 160, 0.2); }
+
+#legend {
+  position: fixed;
+  bottom: 16px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 12px;
+  background: rgba(13, 17, 23, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.8;
+}
+
+#legend .accent { color: #e040a0; font-weight: 500; }
+
+.name-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  color: #ccc;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.name-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
+.name-btn.selected-node-active { border-color: #e040a0; background: rgba(224, 64, 160, 0.08); }
+.name-btn.used-correct { background: rgba(224,64,160,0.08); border-color: rgba(224,64,160,0.25); color: rgba(224,64,160,0.6); cursor: default; text-decoration: line-through; opacity: 0.5; }
+.name-btn.used-failed { background: rgba(224,122,95,0.08); border-color: rgba(224,122,95,0.2); color: rgba(224,122,95,0.6); cursor: default; text-decoration: line-through; opacity: 0.5; }
+.name-btn.wrong-flash { animation: shake 0.4s ease; border-color: #e07a5f; background: rgba(224,122,95,0.15); }
+.name-btn.hidden { display: none; }
+
+#mobile-panel { display: none; }
+
+#completion-modal { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; }
+#completion-modal.visible { display: flex; }
+#completion-content { background: #161b22; padding: 32px; border-radius: 16px; text-align: center; border: 1px solid rgba(224,64,160,0.2); margin: 20px; }
+#completion-content h2 { color: #e040a0; margin-bottom: 12px; font-size: 22px; }
+#completion-content p { color: #ccc; margin-bottom: 8px; font-size: 15px; }
+#restart-btn { margin-top: 20px; padding: 12px 24px; border: none; border-radius: 8px; background: #e040a0; color: #fff; font-weight: 600; font-size: 16px; cursor: pointer; }
+
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+@media (max-width: 768px) {
+  body { display: flex; flex-direction: column; }
+  #network-container { width: 100vw; height: 55vh; flex-shrink: 0; }
+  #sidebar { display: none; }
+  #guess-panel { display: none !important; }
+  #reset-layout-btn { left: 50%; top: 48px; }
+  #legend { bottom: auto; top: 48px; left: 8px; padding: 6px 8px; font-size: 9px; }
+  #mobile-panel {
+    display: flex; flex-direction: column; position: fixed; bottom: 0; left: 0; right: 0;
+    height: 45vh; background: #161b22; border-top: 2px solid rgba(224,64,160,0.3); z-index: 300;
+  }
+  #mobile-hint { padding: 8px 14px 6px; font-size: 12px; color: #aaa; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  #mobile-hint .attempts { color: #e07a5f; margin-left: 8px; }
+  #mobile-search { width: calc(100% - 24px); margin: 8px 12px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.04); color: #e0e0e0; font-size: 14px; outline: none; flex-shrink: 0; }
+  #mobile-search:focus { border-color: #e040a0; }
+  #mobile-search::placeholder { color: #555; }
+  #mobile-list { flex: 1; overflow-y: auto; padding: 4px 10px; -webkit-overflow-scrolling: touch; }
+  #mobile-list .name-btn { padding: 12px 12px; margin-bottom: 4px; font-size: 15px; min-height: 44px; border-radius: 8px; }
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Eurovision Voting Quiz</h1>
+  <div id="score">
+    <span class="guessed">0</span> / <span id="total-count">0</span> |
+    <span class="revealed">0 failed</span>
+  </div>
+</div>
+
+<div id="network-container"></div>
+
+<div id="sidebar">
+  <h2>Countries</h2>
+  <input type="text" id="sidebar-search" placeholder="Filter..." autocomplete="off">
+  <div id="sidebar-list"></div>
+</div>
+
+<div id="guess-panel">
+  <div id="guess-hint">Click a node, then pick a name</div>
+  <div id="attempts-display"></div>
+</div>
+
+<button id="reset-layout-btn">Reset Layout</button>
+
+<div id="legend">
+  Node size = <span class="accent">All-time points received</span><br>
+  Edge = <span class="accent">Top-5 voting partner</span><br>
+  Thicker = stronger mutual voting<br>
+  Colours = flag palette
+</div>
+
+<div id="mobile-panel">
+  <div id="mobile-hint">Tap a node, then pick a country below</div>
+  <input type="text" id="mobile-search" placeholder="Filter countries..." autocomplete="off">
+  <div id="mobile-list"></div>
+</div>
+
+<div id="completion-modal">
+  <div id="completion-content">
+    <h2>Quiz Complete!</h2>
+    <p id="final-score"></p>
+    <p id="final-accuracy"></p>
+    <button id="restart-btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+<script>
+// Each country's top5: ordered list of the 5 countries they've given the most points to all-time
+// pts = approximate all-time total points received across all contests
+const COUNTRIES = [
+  {id:"Sweden",pts:3450,top5:["Norway","Denmark","Finland","Iceland","United Kingdom"],flag:[{hex:"#006AA7",f:.7},{hex:"#FECC00",f:.3}]},
+  {id:"Norway",pts:2600,top5:["Sweden","Denmark","Iceland","Finland","United Kingdom"],flag:[{hex:"#EF2B2D",f:.5},{hex:"#002868",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Denmark",pts:2100,top5:["Sweden","Norway","Iceland","Finland","United Kingdom"],flag:[{hex:"#C60C30",f:.75},{hex:"#fff",f:.25}]},
+  {id:"Finland",pts:1600,top5:["Sweden","Estonia","Norway","Denmark","Iceland"],flag:[{hex:"#fff",f:.7},{hex:"#003580",f:.3}]},
+  {id:"Iceland",pts:1600,top5:["Norway","Sweden","Denmark","Finland","Ireland"],flag:[{hex:"#003897",f:.6},{hex:"#D72828",f:.2},{hex:"#fff",f:.2}]},
+  {id:"United Kingdom",pts:2900,top5:["Ireland","Sweden","Malta","Greece","France"],flag:[{hex:"#012169",f:.5},{hex:"#C8102E",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Ireland",pts:2850,top5:["United Kingdom","Sweden","Norway","Denmark","Iceland"],flag:[{hex:"#169B62",f:.33},{hex:"#fff",f:.33},{hex:"#FF883E",f:.34}]},
+  {id:"France",pts:2800,top5:["Luxembourg","Belgium","Switzerland","Spain","Israel"],flag:[{hex:"#002395",f:.33},{hex:"#fff",f:.33},{hex:"#ED2939",f:.34}]},
+  {id:"Germany",pts:2200,top5:["Turkey","Austria","Italy","Sweden","Switzerland"],flag:[{hex:"#000",f:.33},{hex:"#DD0000",f:.33},{hex:"#FFCC00",f:.34}]},
+  {id:"Italy",pts:2600,top5:["Albania","Spain","United Kingdom","France","Malta"],flag:[{hex:"#009246",f:.33},{hex:"#fff",f:.33},{hex:"#CE2B37",f:.34}]},
+  {id:"Spain",pts:2400,top5:["Portugal","France","Italy","United Kingdom","Romania"],flag:[{hex:"#AA151B",f:.5},{hex:"#F1BF00",f:.5}]},
+  {id:"Netherlands",pts:2100,top5:["Belgium","Turkey","Sweden","United Kingdom","Germany"],flag:[{hex:"#AE1C28",f:.33},{hex:"#fff",f:.33},{hex:"#21468B",f:.34}]},
+  {id:"Belgium",pts:1900,top5:["Netherlands","France","Turkey","Luxembourg","Sweden"],flag:[{hex:"#000",f:.33},{hex:"#FAE042",f:.33},{hex:"#ED2939",f:.34}]},
+  {id:"Switzerland",pts:2000,top5:["France","Germany","Italy","Austria","Portugal"],flag:[{hex:"#FF0000",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Austria",pts:1500,top5:["Germany","Switzerland","Italy","Sweden","Turkey"],flag:[{hex:"#ED2939",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Luxembourg",pts:1200,top5:["France","Belgium","United Kingdom","Switzerland","Ireland"],flag:[{hex:"#ED2939",f:.33},{hex:"#fff",f:.33},{hex:"#00A1DE",f:.34}]},
+  {id:"Monaco",pts:500,top5:["France","Switzerland","United Kingdom","Italy","Luxembourg"],flag:[{hex:"#CE1126",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Portugal",pts:1500,top5:["Spain","France","Romania","Sweden","Moldova"],flag:[{hex:"#006600",f:.4},{hex:"#FF0000",f:.4},{hex:"#FFE000",f:.2}]},
+  {id:"Malta",pts:1400,top5:["Italy","United Kingdom","Sweden","Greece","Switzerland"],flag:[{hex:"#fff",f:.5},{hex:"#CE2B37",f:.5}]},
+  {id:"Greece",pts:2400,top5:["Cyprus","Albania","Armenia","Bulgaria","France"],flag:[{hex:"#0D5EAF",f:.6},{hex:"#fff",f:.4}]},
+  {id:"Cyprus",pts:1700,top5:["Greece","Armenia","Russia","United Kingdom","France"],flag:[{hex:"#fff",f:.7},{hex:"#D47600",f:.15},{hex:"#4E7548",f:.15}]},
+  {id:"Turkey",pts:2100,top5:["Azerbaijan","Germany","Bosnia and Herzegovina","United Kingdom","Belgium"],flag:[{hex:"#E30A17",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Israel",pts:2200,top5:["France","Romania","Greece","Cyprus","Sweden"],flag:[{hex:"#fff",f:.7},{hex:"#0038B8",f:.3}]},
+  {id:"Romania",pts:1600,top5:["Moldova","Spain","Italy","Greece","Turkey"],flag:[{hex:"#002B7F",f:.33},{hex:"#FCD116",f:.33},{hex:"#CE1126",f:.34}]},
+  {id:"Moldova",pts:1200,top5:["Romania","Ukraine","Russia","Turkey","Belarus"],flag:[{hex:"#003DA5",f:.33},{hex:"#FFD200",f:.33},{hex:"#CC092F",f:.34}]},
+  {id:"Russia",pts:2400,top5:["Ukraine","Armenia","Belarus","Azerbaijan","Georgia"],flag:[{hex:"#fff",f:.33},{hex:"#0039A6",f:.33},{hex:"#D52B1E",f:.34}]},
+  {id:"Ukraine",pts:2100,top5:["Russia","Poland","Belarus","Armenia","Georgia"],flag:[{hex:"#005BBB",f:.5},{hex:"#FFD500",f:.5}]},
+  {id:"Belarus",pts:800,top5:["Russia","Ukraine","Moldova","Armenia","Georgia"],flag:[{hex:"#CE1720",f:.55},{hex:"#007C30",f:.3},{hex:"#fff",f:.15}]},
+  {id:"Armenia",pts:1200,top5:["Russia","Georgia","Greece","Cyprus","France"],flag:[{hex:"#D90012",f:.33},{hex:"#0033A0",f:.33},{hex:"#F2A800",f:.34}]},
+  {id:"Georgia",pts:900,top5:["Armenia","Ukraine","Azerbaijan","Russia","Greece"],flag:[{hex:"#fff",f:.6},{hex:"#FF0000",f:.4}]},
+  {id:"Azerbaijan",pts:1400,top5:["Turkey","Russia","Ukraine","Georgia","Germany"],flag:[{hex:"#0092BC",f:.33},{hex:"#E4002B",f:.33},{hex:"#00B140",f:.34}]},
+  {id:"Estonia",pts:1200,top5:["Latvia","Finland","Sweden","Lithuania","Norway"],flag:[{hex:"#0072CE",f:.33},{hex:"#000",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Latvia",pts:1000,top5:["Lithuania","Estonia","Sweden","Russia","Finland"],flag:[{hex:"#9E3039",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Lithuania",pts:1100,top5:["Latvia","Estonia","Poland","Sweden","Ireland"],flag:[{hex:"#FDB913",f:.33},{hex:"#006A44",f:.33},{hex:"#C1272D",f:.34}]},
+  {id:"Poland",pts:1300,top5:["Ukraine","Lithuania","United Kingdom","Ireland","Sweden"],flag:[{hex:"#fff",f:.5},{hex:"#DC143C",f:.5}]},
+  {id:"Serbia",pts:1400,top5:["Bosnia and Herzegovina","Montenegro","North Macedonia","Croatia","Russia"],flag:[{hex:"#C6363C",f:.33},{hex:"#0C4076",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Croatia",pts:1200,top5:["Bosnia and Herzegovina","Serbia","Slovenia","North Macedonia","Montenegro"],flag:[{hex:"#FF0000",f:.33},{hex:"#fff",f:.33},{hex:"#171796",f:.34}]},
+  {id:"Bosnia and Herzegovina",pts:1000,top5:["Serbia","Croatia","Montenegro","North Macedonia","Turkey"],flag:[{hex:"#002395",f:.6},{hex:"#FECB00",f:.3},{hex:"#fff",f:.1}]},
+  {id:"Montenegro",pts:500,top5:["Serbia","Bosnia and Herzegovina","North Macedonia","Croatia","Albania"],flag:[{hex:"#C40308",f:.5},{hex:"#D4AF37",f:.3},{hex:"#1D5E91",f:.2}]},
+  {id:"North Macedonia",pts:800,top5:["Serbia","Albania","Bosnia and Herzegovina","Montenegro","Croatia"],flag:[{hex:"#D20000",f:.6},{hex:"#FFE600",f:.4}]},
+  {id:"Slovenia",pts:900,top5:["Croatia","Serbia","Bosnia and Herzegovina","North Macedonia","Austria"],flag:[{hex:"#fff",f:.33},{hex:"#003DA5",f:.33},{hex:"#ED1C24",f:.34}]},
+  {id:"Albania",pts:900,top5:["Italy","Greece","North Macedonia","Serbia","Turkey"],flag:[{hex:"#E41E20",f:.8},{hex:"#000",f:.2}]},
+  {id:"Hungary",pts:1000,top5:["Serbia","Romania","Austria","Poland","Slovakia"],flag:[{hex:"#CE2939",f:.33},{hex:"#fff",f:.33},{hex:"#477050",f:.34}]},
+  {id:"Bulgaria",pts:1000,top5:["Greece","North Macedonia","Turkey","Romania","Russia"],flag:[{hex:"#fff",f:.33},{hex:"#00966E",f:.33},{hex:"#D62612",f:.34}]},
+  {id:"Czech Republic",pts:700,top5:["Slovakia","Australia","Sweden","Italy","Netherlands"],flag:[{hex:"#11457E",f:.33},{hex:"#fff",f:.33},{hex:"#D7141A",f:.34}]},
+  {id:"Slovakia",pts:400,top5:["Czech Republic","Poland","Hungary","Ukraine","Romania"],flag:[{hex:"#fff",f:.33},{hex:"#0B4EA2",f:.33},{hex:"#EE1C25",f:.34}]},
+  {id:"Australia",pts:1100,top5:["Sweden","Italy","Ukraine","Belgium","Austria"],flag:[{hex:"#012169",f:.5},{hex:"#fff",f:.3},{hex:"#E4002B",f:.2}]},
+  {id:"San Marino",pts:400,top5:["Italy","Malta","Romania","Sweden","Albania"],flag:[{hex:"#fff",f:.5},{hex:"#5EB6E4",f:.5}]},
+  {id:"Andorra",pts:250,top5:["Spain","Romania","Turkey","Bosnia and Herzegovina","Armenia"],flag:[{hex:"#0032A0",f:.33},{hex:"#FEDF00",f:.33},{hex:"#D1001F",f:.34}]},
+  {id:"Morocco",pts:120,top5:["France","Turkey","Israel","Italy","Luxembourg"],flag:[{hex:"#C1272D",f:.8},{hex:"#006233",f:.2}]},
+];
+
+// Build edges from top-5 data
+// Edge weight = sum of positional scores: #1 in list = 5pts, #2 = 4, ... #5 = 1
+// If A has B as #1 (5) and B has A as #1 (5) => weight 10 (max)
+// If only one-directional at #5 => weight 1 (min)
+function buildEdges() {
+  const edgeMap = {};
+  COUNTRIES.forEach(c => {
+    c.top5.forEach((target, idx) => {
+      const key = [c.id, target].sort().join('||');
+      if (!edgeMap[key]) edgeMap[key] = {a: [c.id, target].sort()[0], b: [c.id, target].sort()[1], score: 0};
+      edgeMap[key].score += (5 - idx);
+    });
+  });
+  return Object.values(edgeMap).filter(e => {
+    const countryIds = new Set(COUNTRIES.map(c => c.id));
+    return countryIds.has(e.a) && countryIds.has(e.b);
+  });
+}
+
+const allEdges = buildEdges();
+
+function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+function flagPieSvg(colors, diameter) {
+  const r = diameter / 2;
+  let paths = '';
+  let startAngle = -Math.PI / 2;
+  colors.forEach(c => {
+    const endAngle = startAngle + c.f * 2 * Math.PI;
+    const x1 = r + r * Math.cos(startAngle);
+    const y1 = r + r * Math.sin(startAngle);
+    const x2 = r + r * Math.cos(endAngle);
+    const y2 = r + r * Math.sin(endAngle);
+    const largeArc = c.f > 0.5 ? 1 : 0;
+    if (c.f >= 0.999) {
+      paths += `<circle cx="${r}" cy="${r}" r="${r}" fill="${c.hex}"/>`;
+    } else {
+      paths += `<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z" fill="${c.hex}"/>`;
+    }
+    startAngle = endAngle;
+  });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${diameter}" height="${diameter}">${paths}</svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+const pts = COUNTRIES.map(c => c.pts);
+const sqrtMin = Math.sqrt(Math.min(...pts.filter(p => p > 0)));
+const sqrtMax = Math.sqrt(Math.max(...pts));
+
+function nodeSize(country) {
+  const val = Math.max(country.pts, 1);
+  const norm = (Math.sqrt(val) - sqrtMin) / (sqrtMax - sqrtMin);
+  return 14 + Math.max(0, norm) * 40;
+}
+
+let gameState = { revealed: new Set(), guessedCorrectly: new Set(), failedReveal: new Set(), selectedNode: null, attempts: {}, totalGuesses: 0 };
+
+document.getElementById('total-count').textContent = COUNTRIES.length;
+
+const nodesData = new vis.DataSet(COUNTRIES.map(c => ({
+  id: c.id, label: ' ', size: nodeSize(c), shape: 'circularImage', image: flagPieSvg(c.flag, 100),
+  borderWidth: 2, borderWidthSelected: 3,
+  color: { border:'rgba(255,255,255,0.15)', highlight:{border:'#fff'}, hover:{border:'rgba(255,255,255,0.4)'} },
+  font: { color:'transparent', size:0 }
+})));
+
+// Edge width ranges from 1 to 8 based on score (1-10)
+const maxScore = Math.max(...allEdges.map(e => e.score));
+const minScore = Math.min(...allEdges.map(e => e.score));
+
+const edgesData = new vis.DataSet(allEdges.map((e, i) => {
+  const norm = (e.score - minScore) / (maxScore - minScore);
+  const width = 1 + norm * 7;
+  const opacity = 0.08 + norm * 0.35;
+  return {
+    id: i, from: e.a, to: e.b, width: width,
+    color: { color: `rgba(224, 64, 160, ${opacity})`, highlight: `rgba(224, 64, 160, ${Math.min(1, opacity + 0.4)})` },
+    smooth: { type: 'continuous' }
+  };
+}));
+
+const container = document.getElementById('network-container');
+const network = new vis.Network(container, { nodes: nodesData, edges: edgesData }, {
+  physics: {
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: { gravitationalConstant: -200, centralGravity: 0.006, springLength: 180, springConstant: 0.035, damping: 0.4 },
+    stabilization: { iterations: 3000, updateInterval: 50 }
+  },
+  interaction: { hover: true, tooltipDelay: 300, zoomView: true, dragView: true, dragNodes: true }
+});
+
+network.once('stabilizationIterationsDone', () => { network.setOptions({ physics:{enabled:false} }); });
+
+// Name lists
+const sortedNames = COUNTRIES.map(c => c.id).sort((a,b) => a.localeCompare(b));
+const btnHtml = sortedNames.map(n => `<button class="name-btn" data-name="${n}">${n}</button>`).join('');
+
+const sidebarList = document.getElementById('sidebar-list');
+sidebarList.innerHTML = btnHtml;
+const mobileList = document.getElementById('mobile-list');
+mobileList.innerHTML = btnHtml;
+
+function handleNameClick(e) {
+  const btn = e.target.closest('.name-btn');
+  if (!btn || btn.classList.contains('used-correct') || btn.classList.contains('used-failed')) return;
+  submitGuess(btn.dataset.name, btn);
+}
+sidebarList.addEventListener('click', handleNameClick);
+mobileList.addEventListener('click', handleNameClick);
+
+// Search/filter
+function setupFilter(input, list) {
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    list.querySelectorAll('.name-btn').forEach(btn => {
+      if (btn.classList.contains('used-correct') || btn.classList.contains('used-failed')) { btn.classList.add('hidden'); return; }
+      btn.classList.toggle('hidden', q.length > 0 && !btn.dataset.name.toLowerCase().includes(q));
+    });
+  });
+}
+setupFilter(document.getElementById('sidebar-search'), sidebarList);
+const mobileSearch = document.getElementById('mobile-search');
+if (mobileSearch) setupFilter(mobileSearch, mobileList);
+
+// Network click
+network.on('click', (params) => {
+  if (params.nodes.length === 0) { if (isMobile()) gameState.selectedNode=null; else deselectNode(); return; }
+  const nodeId = params.nodes[0];
+  if (gameState.revealed.has(nodeId)) return;
+  selectNode(nodeId);
+});
+
+function selectNode(nodeId) {
+  gameState.selectedNode = nodeId;
+  const connections = allEdges.filter(e => e.a === nodeId || e.b === nodeId);
+  const strongConnections = connections.filter(e => e.score >= 7);
+  const connectedRevealed = getRevealedNeighbours(nodeId);
+  let hintText = `${connections.length} link${connections.length!==1?'s':''}`;
+  if (strongConnections.length > 0) hintText += ` (${strongConnections.length} strong)`;
+  if (connectedRevealed.length > 0) hintText += ` · near: ${connectedRevealed.join(', ')}`;
+  const attempts = gameState.attempts[nodeId] || 0;
+  const attText = attempts > 0 ? `Attempts: ${attempts}/3` : '';
+
+  if (isMobile()) {
+    document.getElementById('mobile-hint').innerHTML = hintText + (attText ? ` <span class="attempts">${attText}</span>` : '');
+  } else {
+    document.getElementById('guess-hint').textContent = hintText + ' — pick a name';
+    document.getElementById('attempts-display').textContent = attText;
+    document.getElementById('guess-panel').classList.add('visible');
+    document.querySelectorAll('#sidebar-list .name-btn').forEach(btn => {
+      if (!btn.classList.contains('used-correct') && !btn.classList.contains('used-failed')) btn.classList.add('selected-node-active');
+    });
+  }
+}
+
+function deselectNode() {
+  gameState.selectedNode = null;
+  document.getElementById('guess-panel').classList.remove('visible');
+  document.querySelectorAll('#sidebar-list .name-btn').forEach(btn => btn.classList.remove('selected-node-active'));
+}
+
+function getRevealedNeighbours(nodeId) {
+  const n = [];
+  allEdges.forEach(e => {
+    if (e.a === nodeId && gameState.revealed.has(e.b)) n.push(e.b);
+    if (e.b === nodeId && gameState.revealed.has(e.a)) n.push(e.a);
+  });
+  return n;
+}
+
+function submitGuess(guessedName, btn) {
+  const nodeId = gameState.selectedNode;
+  if (!nodeId) return;
+  const country = COUNTRIES.find(c => c.id === nodeId);
+  gameState.totalGuesses++;
+  if (guessedName === country.id) {
+    revealNode(nodeId, true);
+    markUsed(guessedName, 'used-correct');
+    if (isMobile()) gameState.selectedNode=null; else deselectNode();
+  } else {
+    gameState.attempts[nodeId] = (gameState.attempts[nodeId]||0)+1;
+    btn.classList.add('wrong-flash');
+    setTimeout(() => btn.classList.remove('wrong-flash'), 400);
+    if (isMobile()) document.getElementById('mobile-hint').innerHTML = `Attempts: ${gameState.attempts[nodeId]}/3`;
+    else document.getElementById('attempts-display').textContent = `Attempts: ${gameState.attempts[nodeId]}/3`;
+    if (gameState.attempts[nodeId] >= 3) {
+      revealNode(nodeId, false);
+      markUsed(country.id, 'used-failed');
+      if (isMobile()) gameState.selectedNode=null; else deselectNode();
+    }
+  }
+}
+
+function markUsed(name, cls) {
+  document.querySelectorAll(`.name-btn[data-name="${name}"]`).forEach(btn => { btn.classList.add(cls); btn.classList.remove('selected-node-active'); });
+}
+
+function revealNode(nodeId, guessedCorrectly) {
+  gameState.revealed.add(nodeId);
+  if (guessedCorrectly) {
+    gameState.guessedCorrectly.add(nodeId);
+    nodesData.update({ id:nodeId, label:nodeId, font:{color:'#fff',size:10,strokeWidth:1,strokeColor:'rgba(0,0,0,0.4)'}, opacity:0.4, borderWidth:1, color:{border:'rgba(255,255,255,0.1)',highlight:{border:'#fff'},hover:{border:'#fff'}} });
+  } else {
+    gameState.failedReveal.add(nodeId);
+    nodesData.update({ id:nodeId, label:nodeId, font:{color:'rgba(255,255,255,0.6)',size:9,strokeWidth:1,strokeColor:'rgba(0,0,0,0.3)'}, opacity:0.35, borderWidth:1, color:{border:'rgba(224,122,95,0.4)',highlight:{border:'rgba(224,122,95,0.7)'},hover:{border:'rgba(224,122,95,0.7)'}} });
+  }
+  highlightRemaining();
+  updateScore();
+  checkCompletion();
+}
+
+function highlightRemaining() {
+  const rem = COUNTRIES.filter(c => !gameState.revealed.has(c.id));
+  if (rem.length <= 5 && rem.length > 0) {
+    rem.forEach(c => { nodesData.update({ id:c.id, borderWidth:3, color:{border:'#e040a0',highlight:{border:'#fff'},hover:{border:'#e040a0'}}, shadow:{enabled:true,color:'rgba(224,64,160,0.4)',size:20} }); });
+  }
+}
+
+function updateScore() {
+  document.getElementById('score').innerHTML = `<span class="guessed">${gameState.guessedCorrectly.size}</span> / <span id="total-count">${COUNTRIES.length}</span> | <span class="revealed">${gameState.failedReveal.size} failed</span>`;
+}
+
+function checkCompletion() {
+  if (gameState.revealed.size === COUNTRIES.length) {
+    document.getElementById('final-score').textContent = `You guessed ${gameState.guessedCorrectly.size} out of ${COUNTRIES.length} countries correctly.`;
+    document.getElementById('final-accuracy').textContent = `Total guesses made: ${gameState.totalGuesses}`;
+    document.getElementById('completion-modal').classList.add('visible');
+  }
+}
+
+document.getElementById('reset-layout-btn').addEventListener('click', () => {
+  network.setOptions({ physics:{ enabled:true, solver:'forceAtlas2Based', forceAtlas2Based:{gravitationalConstant:-200,centralGravity:0.006,springLength:180,springConstant:0.035,damping:0.4}, stabilization:{iterations:1500,updateInterval:50} } });
+  network.stabilize(1500);
+  network.once('stabilizationIterationsDone', () => { network.setOptions({physics:{enabled:false}}); });
+});
+
+document.addEventListener('keydown', (e) => { if (e.key==='Escape') { if(isMobile()) gameState.selectedNode=null; else deselectNode(); } });
+</script>
+</body>
+</html>

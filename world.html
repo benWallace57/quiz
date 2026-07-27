@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>World Borders Network Quiz</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d1117;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  gap: 12px;
+}
+
+#header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4db8a0;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+#controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#size-toggle {
+  padding: 5px 10px;
+  border: 1px solid rgba(77, 184, 160, 0.4);
+  border-radius: 6px;
+  background: rgba(77, 184, 160, 0.1);
+  color: #4db8a0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#size-toggle:hover { background: rgba(77, 184, 160, 0.2); }
+
+#score { font-size: 13px; color: #aaa; white-space: nowrap; }
+#score .guessed { color: #4db8a0; font-weight: 600; }
+#score .revealed { color: #e07a5f; font-weight: 600; }
+
+#network-container { width: calc(100vw - 260px); height: 100vh; }
+
+#sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 260px;
+  height: 100vh;
+  padding: 52px 10px 12px;
+  overflow-y: auto;
+  background: rgba(13, 17, 23, 0.97);
+  border-left: 1px solid rgba(255,255,255,0.06);
+  z-index: 50;
+}
+
+#sidebar h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+#sidebar-search {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+}
+
+#sidebar-search:focus { border-color: #4db8a0; }
+#sidebar-search::placeholder { color: #555; }
+
+#guess-panel {
+  position: fixed;
+  bottom: 24px;
+  left: calc((100vw - 260px) / 2);
+  transform: translateX(-50%);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: rgba(20, 24, 33, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#guess-panel.visible { display: flex; }
+#guess-hint { font-size: 13px; color: #888; max-width: 400px; text-align: center; }
+#attempts-display { font-size: 12px; color: #e07a5f; }
+
+#reset-layout-btn {
+  position: fixed;
+  top: 52px;
+  left: calc((100vw - 260px) / 2);
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 8px 16px;
+  border: 1px solid rgba(77, 184, 160, 0.4);
+  border-radius: 8px;
+  background: rgba(77, 184, 160, 0.1);
+  color: #4db8a0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#reset-layout-btn:hover { background: rgba(77, 184, 160, 0.2); }
+
+#legend {
+  position: fixed;
+  bottom: 16px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 12px;
+  background: rgba(13, 17, 23, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+#legend .size-label { color: #4db8a0; font-weight: 500; }
+
+.name-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 3px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  color: #ccc;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.name-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
+.name-btn.selected-node-active { border-color: #4db8a0; background: rgba(77, 184, 160, 0.08); }
+.name-btn.used-correct { background: rgba(77,184,160,0.08); border-color: rgba(77,184,160,0.25); color: rgba(77,184,160,0.6); cursor: default; text-decoration: line-through; opacity: 0.5; }
+.name-btn.used-failed { background: rgba(224,122,95,0.08); border-color: rgba(224,122,95,0.2); color: rgba(224,122,95,0.6); cursor: default; text-decoration: line-through; opacity: 0.5; }
+.name-btn.wrong-flash { animation: shake 0.4s ease; border-color: #e07a5f; background: rgba(224,122,95,0.15); }
+.name-btn.hidden { display: none; }
+
+#mobile-panel { display: none; }
+
+#completion-modal { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; }
+#completion-modal.visible { display: flex; }
+#completion-content { background: #161b22; padding: 32px; border-radius: 16px; text-align: center; border: 1px solid rgba(77,184,160,0.2); margin: 20px; }
+#completion-content h2 { color: #4db8a0; margin-bottom: 12px; font-size: 22px; }
+#completion-content p { color: #ccc; margin-bottom: 8px; font-size: 15px; }
+#restart-btn { margin-top: 20px; padding: 12px 24px; border: none; border-radius: 8px; background: #4db8a0; color: #0d1117; font-weight: 600; font-size: 16px; cursor: pointer; }
+
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+@media (max-width: 768px) {
+  body { display: flex; flex-direction: column; }
+  #network-container { width: 100vw; height: 55vh; flex-shrink: 0; }
+  #sidebar { display: none; }
+  #guess-panel { display: none !important; }
+  #reset-layout-btn { left: 50%; top: 48px; }
+  #legend { bottom: auto; top: 48px; left: 8px; padding: 6px 8px; font-size: 9px; }
+  #mobile-panel {
+    display: flex; flex-direction: column; position: fixed; bottom: 0; left: 0; right: 0;
+    height: 45vh; background: #161b22; border-top: 2px solid rgba(77,184,160,0.3); z-index: 300;
+  }
+  #mobile-hint { padding: 8px 14px 6px; font-size: 12px; color: #aaa; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  #mobile-hint .attempts { color: #e07a5f; margin-left: 8px; }
+  #mobile-search { width: calc(100% - 24px); margin: 8px 12px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.04); color: #e0e0e0; font-size: 14px; outline: none; flex-shrink: 0; }
+  #mobile-search:focus { border-color: #4db8a0; }
+  #mobile-search::placeholder { color: #555; }
+  #mobile-list { flex: 1; overflow-y: auto; padding: 4px 10px; -webkit-overflow-scrolling: touch; }
+  #mobile-list .name-btn { padding: 12px 12px; margin-bottom: 4px; font-size: 15px; min-height: 44px; border-radius: 8px; }
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>World Quiz</h1>
+  <div id="controls">
+    <button id="size-toggle">Size: Area</button>
+    <div id="score">
+      <span class="guessed">0</span> / <span id="total-count">0</span> |
+      <span class="revealed">0 failed</span>
+    </div>
+  </div>
+</div>
+
+<div id="network-container"></div>
+
+<div id="sidebar">
+  <h2>Countries</h2>
+  <input type="text" id="sidebar-search" placeholder="Filter..." autocomplete="off">
+  <div id="sidebar-list"></div>
+</div>
+
+<div id="guess-panel">
+  <div id="guess-hint">Click a node, then pick a name</div>
+  <div id="attempts-display"></div>
+</div>
+
+<button id="reset-layout-btn">Reset Layout</button>
+
+<div id="legend">
+  Node size = <span class="size-label">Area</span><br>
+  ── solid = land border (thickness = border length)<br>
+  ╌╌ dashed = maritime link<br>
+  Colours = flag palette
+</div>
+
+<div id="mobile-panel">
+  <div id="mobile-hint">Tap a node, then pick a country below</div>
+  <input type="text" id="mobile-search" placeholder="Filter countries..." autocomplete="off">
+  <div id="mobile-list"></div>
+</div>
+
+<div id="completion-modal">
+  <div id="completion-content">
+    <h2>Quiz Complete!</h2>
+    <p id="final-score"></p>
+    <p id="final-accuracy"></p>
+    <button id="restart-btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+<script>
+const COUNTRIES = [
+  // EUROPE
+  {id:"Russia",pop:144000000,gdp:1775,area:17098242,borders:[{id:"Norway",len:191},{id:"Finland",len:1340},{id:"Estonia",len:324},{id:"Latvia",len:270},{id:"Lithuania",len:261},{id:"Poland",len:210},{id:"Belarus",len:1312},{id:"Ukraine",len:1944},{id:"Georgia",len:894},{id:"Azerbaijan",len:338},{id:"Kazakhstan",len:7644},{id:"China",len:4209},{id:"Mongolia",len:3452},{id:"North Korea",len:18}],maritime:[],flag:[{hex:"#fff",f:.33},{hex:"#0039A6",f:.33},{hex:"#D52B1E",f:.34}]},
+  {id:"Germany",pop:83200000,gdp:4260,area:357022,borders:[{id:"Denmark",len:140},{id:"Poland",len:467},{id:"Czech Republic",len:704},{id:"Austria",len:801},{id:"Switzerland",len:348},{id:"France",len:418},{id:"Luxembourg",len:128},{id:"Belgium",len:133},{id:"Netherlands",len:575}],maritime:[],flag:[{hex:"#000",f:.33},{hex:"#DD0000",f:.33},{hex:"#FFCC00",f:.34}]},
+  {id:"United Kingdom",pop:67900000,gdp:3070,area:243610,borders:[{id:"Ireland",len:499}],maritime:["France","Belgium","Netherlands","Norway"],flag:[{hex:"#012169",f:.5},{hex:"#C8102E",f:.3},{hex:"#fff",f:.2}]},
+  {id:"France",pop:67750000,gdp:2780,area:643801,borders:[{id:"Belgium",len:556},{id:"Luxembourg",len:69},{id:"Germany",len:418},{id:"Switzerland",len:573},{id:"Italy",len:476},{id:"Monaco",len:6},{id:"Spain",len:646},{id:"Andorra",len:55}],maritime:["United Kingdom"],flag:[{hex:"#002395",f:.33},{hex:"#fff",f:.33},{hex:"#ED2939",f:.34}]},
+  {id:"Italy",pop:59550000,gdp:2010,area:301340,borders:[{id:"France",len:476},{id:"Switzerland",len:698},{id:"Austria",len:404},{id:"Slovenia",len:218},{id:"San Marino",len:39},{id:"Vatican City",len:3}],maritime:["Malta","Tunisia","Albania"],flag:[{hex:"#009246",f:.33},{hex:"#fff",f:.33},{hex:"#CE2B37",f:.34}]},
+  {id:"Spain",pop:47420000,gdp:1400,area:505992,borders:[{id:"Portugal",len:1224},{id:"France",len:646},{id:"Andorra",len:63},{id:"Morocco",len:18}],maritime:[],flag:[{hex:"#AA151B",f:.5},{hex:"#F1BF00",f:.5}]},
+  {id:"Ukraine",pop:43730000,gdp:160,area:603550,borders:[{id:"Russia",len:1944},{id:"Belarus",len:1111},{id:"Poland",len:535},{id:"Slovakia",len:98},{id:"Hungary",len:128},{id:"Romania",len:601},{id:"Moldova",len:1202}],maritime:[],flag:[{hex:"#005BBB",f:.5},{hex:"#FFD500",f:.5}]},
+  {id:"Poland",pop:37750000,gdp:690,area:312685,borders:[{id:"Russia",len:210},{id:"Lithuania",len:104},{id:"Belarus",len:418},{id:"Ukraine",len:535},{id:"Slovakia",len:541},{id:"Czech Republic",len:796},{id:"Germany",len:467}],maritime:[],flag:[{hex:"#fff",f:.5},{hex:"#DC143C",f:.5}]},
+  {id:"Romania",pop:19120000,gdp:290,area:238391,borders:[{id:"Ukraine",len:601},{id:"Moldova",len:683},{id:"Bulgaria",len:605},{id:"Serbia",len:531},{id:"Hungary",len:424}],maritime:[],flag:[{hex:"#002B7F",f:.33},{hex:"#FCD116",f:.33},{hex:"#CE1126",f:.34}]},
+  {id:"Netherlands",pop:17530000,gdp:1010,area:41543,borders:[{id:"Belgium",len:478},{id:"Germany",len:575}],maritime:["United Kingdom"],flag:[{hex:"#AE1C28",f:.33},{hex:"#fff",f:.33},{hex:"#21468B",f:.34}]},
+  {id:"Belgium",pop:11590000,gdp:580,area:30528,borders:[{id:"Netherlands",len:478},{id:"Germany",len:133},{id:"Luxembourg",len:130},{id:"France",len:556}],maritime:["United Kingdom"],flag:[{hex:"#000",f:.33},{hex:"#FAE042",f:.33},{hex:"#ED2939",f:.34}]},
+  {id:"Czech Republic",pop:10510000,gdp:290,area:78867,borders:[{id:"Germany",len:704},{id:"Poland",len:796},{id:"Slovakia",len:252},{id:"Austria",len:402}],maritime:[],flag:[{hex:"#11457E",f:.33},{hex:"#fff",f:.33},{hex:"#D7141A",f:.34}]},
+  {id:"Greece",pop:10430000,gdp:220,area:131957,borders:[{id:"Albania",len:212},{id:"North Macedonia",len:234},{id:"Bulgaria",len:472},{id:"Turkey",len:192}],maritime:["Cyprus"],flag:[{hex:"#0D5EAF",f:.6},{hex:"#fff",f:.4}]},
+  {id:"Portugal",pop:10310000,gdp:250,area:92090,borders:[{id:"Spain",len:1224}],maritime:[],flag:[{hex:"#006600",f:.4},{hex:"#FF0000",f:.4},{hex:"#FFE000",f:.2}]},
+  {id:"Sweden",pop:10420000,gdp:590,area:450295,borders:[{id:"Norway",len:1619},{id:"Finland",len:614}],maritime:["Denmark"],flag:[{hex:"#006AA7",f:.7},{hex:"#FECC00",f:.3}]},
+  {id:"Hungary",pop:9750000,gdp:180,area:93028,borders:[{id:"Slovakia",len:627},{id:"Ukraine",len:128},{id:"Romania",len:424},{id:"Serbia",len:164},{id:"Croatia",len:348},{id:"Slovenia",len:94},{id:"Austria",len:321}],maritime:[],flag:[{hex:"#CE2939",f:.33},{hex:"#fff",f:.33},{hex:"#477050",f:.34}]},
+  {id:"Belarus",pop:9200000,gdp:70,area:207600,borders:[{id:"Russia",len:1312},{id:"Ukraine",len:1111},{id:"Poland",len:418},{id:"Lithuania",len:640},{id:"Latvia",len:161}],maritime:[],flag:[{hex:"#CE1720",f:.55},{hex:"#007C30",f:.3},{hex:"#fff",f:.15}]},
+  {id:"Austria",pop:9100000,gdp:470,area:83871,borders:[{id:"Germany",len:801},{id:"Czech Republic",len:402},{id:"Slovakia",len:105},{id:"Hungary",len:321},{id:"Slovenia",len:299},{id:"Italy",len:404},{id:"Switzerland",len:158},{id:"Liechtenstein",len:34}],maritime:[],flag:[{hex:"#ED2939",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Serbia",pop:6800000,gdp:63,area:77474,borders:[{id:"Hungary",len:164},{id:"Romania",len:531},{id:"Bulgaria",len:344},{id:"North Macedonia",len:101},{id:"Kosovo",len:366},{id:"Montenegro",len:157},{id:"Bosnia and Herzegovina",len:345},{id:"Croatia",len:314}],maritime:[],flag:[{hex:"#C6363C",f:.33},{hex:"#0C4076",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Switzerland",pop:8770000,gdp:810,area:41277,borders:[{id:"Germany",len:348},{id:"France",len:573},{id:"Italy",len:698},{id:"Austria",len:158},{id:"Liechtenstein",len:41}],maritime:[],flag:[{hex:"#FF0000",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Bulgaria",pop:6520000,gdp:90,area:110879,borders:[{id:"Romania",len:605},{id:"Serbia",len:344},{id:"North Macedonia",len:162},{id:"Greece",len:472},{id:"Turkey",len:223}],maritime:[],flag:[{hex:"#fff",f:.33},{hex:"#00966E",f:.33},{hex:"#D62612",f:.34}]},
+  {id:"Denmark",pop:5920000,gdp:400,area:43094,borders:[{id:"Germany",len:140}],maritime:["Sweden","Norway"],flag:[{hex:"#C60C30",f:.75},{hex:"#fff",f:.25}]},
+  {id:"Finland",pop:5550000,gdp:300,area:338145,borders:[{id:"Sweden",len:614},{id:"Norway",len:736},{id:"Russia",len:1340}],maritime:["Estonia"],flag:[{hex:"#fff",f:.7},{hex:"#003580",f:.3}]},
+  {id:"Slovakia",pop:5460000,gdp:115,area:49035,borders:[{id:"Poland",len:541},{id:"Ukraine",len:98},{id:"Hungary",len:627},{id:"Austria",len:105},{id:"Czech Republic",len:252}],maritime:[],flag:[{hex:"#fff",f:.33},{hex:"#0B4EA2",f:.33},{hex:"#EE1C25",f:.34}]},
+  {id:"Norway",pop:5470000,gdp:480,area:323802,borders:[{id:"Sweden",len:1619},{id:"Finland",len:736},{id:"Russia",len:191}],maritime:["Denmark","United Kingdom","Iceland"],flag:[{hex:"#EF2B2D",f:.5},{hex:"#002868",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Ireland",pop:5060000,gdp:530,area:70273,borders:[{id:"United Kingdom",len:499}],maritime:[],flag:[{hex:"#169B62",f:.33},{hex:"#fff",f:.33},{hex:"#FF883E",f:.34}]},
+  {id:"Croatia",pop:3860000,gdp:68,area:56594,borders:[{id:"Slovenia",len:600},{id:"Hungary",len:348},{id:"Serbia",len:314},{id:"Bosnia and Herzegovina",len:956},{id:"Montenegro",len:19}],maritime:[],flag:[{hex:"#FF0000",f:.33},{hex:"#fff",f:.33},{hex:"#171796",f:.34}]},
+  {id:"Moldova",pop:2600000,gdp:14,area:33846,borders:[{id:"Romania",len:683},{id:"Ukraine",len:1202}],maritime:[],flag:[{hex:"#003DA5",f:.33},{hex:"#FFD200",f:.33},{hex:"#CC092F",f:.34}]},
+  {id:"Bosnia and Herzegovina",pop:3270000,gdp:23,area:51197,borders:[{id:"Croatia",len:956},{id:"Serbia",len:345},{id:"Montenegro",len:242}],maritime:[],flag:[{hex:"#002395",f:.6},{hex:"#FECB00",f:.3},{hex:"#fff",f:.1}]},
+  {id:"Albania",pop:2870000,gdp:18,area:28748,borders:[{id:"Montenegro",len:172},{id:"Kosovo",len:112},{id:"North Macedonia",len:181},{id:"Greece",len:212}],maritime:["Italy"],flag:[{hex:"#E41E20",f:.8},{hex:"#000",f:.2}]},
+  {id:"Lithuania",pop:2790000,gdp:67,area:65300,borders:[{id:"Latvia",len:544},{id:"Belarus",len:640},{id:"Poland",len:104},{id:"Russia",len:261}],maritime:[],flag:[{hex:"#FDB913",f:.33},{hex:"#006A44",f:.33},{hex:"#C1272D",f:.34}]},
+  {id:"North Macedonia",pop:2080000,gdp:14,area:25713,borders:[{id:"Kosovo",len:160},{id:"Serbia",len:101},{id:"Bulgaria",len:162},{id:"Greece",len:234},{id:"Albania",len:181}],maritime:[],flag:[{hex:"#D20000",f:.6},{hex:"#FFE600",f:.4}]},
+  {id:"Slovenia",pop:2110000,gdp:62,area:20273,borders:[{id:"Italy",len:218},{id:"Austria",len:299},{id:"Hungary",len:94},{id:"Croatia",len:600}],maritime:[],flag:[{hex:"#fff",f:.33},{hex:"#003DA5",f:.33},{hex:"#ED1C24",f:.34}]},
+  {id:"Latvia",pop:1850000,gdp:40,area:64589,borders:[{id:"Estonia",len:333},{id:"Lithuania",len:544},{id:"Belarus",len:161},{id:"Russia",len:270}],maritime:[],flag:[{hex:"#9E3039",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Estonia",pop:1330000,gdp:38,area:45228,borders:[{id:"Latvia",len:333},{id:"Russia",len:324}],maritime:["Finland"],flag:[{hex:"#0072CE",f:.33},{hex:"#000",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Kosovo",pop:1800000,gdp:9,area:10887,borders:[{id:"Serbia",len:366},{id:"North Macedonia",len:160},{id:"Albania",len:112},{id:"Montenegro",len:76}],maritime:[],flag:[{hex:"#244AA5",f:.7},{hex:"#D0A650",f:.3}]},
+  {id:"Montenegro",pop:620000,gdp:6,area:13812,borders:[{id:"Croatia",len:19},{id:"Bosnia and Herzegovina",len:242},{id:"Serbia",len:157},{id:"Kosovo",len:76},{id:"Albania",len:172}],maritime:[],flag:[{hex:"#C40308",f:.5},{hex:"#D4AF37",f:.3},{hex:"#1D5E91",f:.2}]},
+  {id:"Luxembourg",pop:650000,gdp:86,area:2586,borders:[{id:"Belgium",len:130},{id:"Germany",len:128},{id:"France",len:69}],maritime:[],flag:[{hex:"#ED2939",f:.33},{hex:"#fff",f:.33},{hex:"#00A1DE",f:.34}]},
+  {id:"Malta",pop:520000,gdp:17,area:316,borders:[],maritime:["Italy","Tunisia"],flag:[{hex:"#fff",f:.5},{hex:"#CE2B37",f:.5}]},
+  {id:"Iceland",pop:380000,gdp:27,area:103000,borders:[],maritime:["Norway","United Kingdom"],flag:[{hex:"#003897",f:.6},{hex:"#D72828",f:.2},{hex:"#fff",f:.2}]},
+  {id:"Andorra",pop:79000,gdp:3,area:468,borders:[{id:"France",len:55},{id:"Spain",len:63}],maritime:[],flag:[{hex:"#0032A0",f:.33},{hex:"#FEDF00",f:.33},{hex:"#D1001F",f:.34}]},
+  {id:"Monaco",pop:39000,gdp:7,area:2,borders:[{id:"France",len:6}],maritime:[],flag:[{hex:"#CE1126",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Liechtenstein",pop:39000,gdp:7,area:160,borders:[{id:"Austria",len:34},{id:"Switzerland",len:41}],maritime:[],flag:[{hex:"#002B7F",f:.5},{hex:"#CE1126",f:.5}]},
+  {id:"San Marino",pop:34000,gdp:2,area:61,borders:[{id:"Italy",len:39}],maritime:[],flag:[{hex:"#fff",f:.5},{hex:"#5EB6E4",f:.5}]},
+  {id:"Vatican City",pop:800,gdp:0.3,area:0.44,borders:[{id:"Italy",len:3}],maritime:[],flag:[{hex:"#FFE000",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Turkey",pop:85000000,gdp:820,area:783562,borders:[{id:"Greece",len:192},{id:"Bulgaria",len:223},{id:"Georgia",len:273},{id:"Armenia",len:311},{id:"Azerbaijan",len:17},{id:"Iran",len:534},{id:"Iraq",len:367},{id:"Syria",len:899}],maritime:["Cyprus"],flag:[{hex:"#E30A17",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Cyprus",pop:1210000,gdp:28,area:9251,borders:[],maritime:["Turkey","Greece"],flag:[{hex:"#fff",f:.7},{hex:"#D47600",f:.15},{hex:"#4E7548",f:.15}]},
+  // ASIA
+  {id:"China",pop:1412000000,gdp:17730,area:9596960,borders:[{id:"Russia",len:4209},{id:"Mongolia",len:4630},{id:"North Korea",len:1352},{id:"Vietnam",len:1297},{id:"Laos",len:475},{id:"Myanmar",len:2129},{id:"India",len:2659},{id:"Bhutan",len:477},{id:"Nepal",len:1389},{id:"Pakistan",len:438},{id:"Afghanistan",len:91},{id:"Tajikistan",len:477},{id:"Kyrgyzstan",len:1063},{id:"Kazakhstan",len:1765}],maritime:["Taiwan","Japan","South Korea","Philippines"],flag:[{hex:"#DE2910",f:.75},{hex:"#FFDE00",f:.25}]},
+  {id:"India",pop:1408000000,gdp:3390,area:3287263,borders:[{id:"Pakistan",len:3190},{id:"China",len:2659},{id:"Nepal",len:1770},{id:"Bhutan",len:659},{id:"Bangladesh",len:4142},{id:"Myanmar",len:1468}],maritime:["Sri Lanka","Maldives"],flag:[{hex:"#FF9933",f:.33},{hex:"#fff",f:.33},{hex:"#138808",f:.34}]},
+  {id:"Indonesia",pop:274000000,gdp:1190,area:1904569,borders:[{id:"Malaysia",len:1881},{id:"Papua New Guinea",len:824},{id:"East Timor",len:253}],maritime:["Australia","Philippines","Singapore"],flag:[{hex:"#FF0000",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Pakistan",pop:225000000,gdp:350,area:881913,borders:[{id:"India",len:3190},{id:"China",len:438},{id:"Afghanistan",len:2670},{id:"Iran",len:959}],maritime:[],flag:[{hex:"#01411C",f:.75},{hex:"#fff",f:.25}]},
+  {id:"Bangladesh",pop:170000000,gdp:416,area:148460,borders:[{id:"India",len:4142},{id:"Myanmar",len:271}],maritime:[],flag:[{hex:"#006A4E",f:.7},{hex:"#F42A41",f:.3}]},
+  {id:"Japan",pop:125700000,gdp:4230,area:377975,borders:[],maritime:["South Korea","Russia","China","Taiwan"],flag:[{hex:"#fff",f:.7},{hex:"#BC002D",f:.3}]},
+  {id:"Philippines",pop:111000000,gdp:394,area:300000,borders:[],maritime:["Taiwan","Indonesia","Malaysia","China"],flag:[{hex:"#0038A8",f:.33},{hex:"#CE1126",f:.33},{hex:"#fff",f:.2},{hex:"#FCD116",f:.14}]},
+  {id:"Vietnam",pop:98000000,gdp:366,area:331212,borders:[{id:"China",len:1297},{id:"Laos",len:2161},{id:"Cambodia",len:1158}],maritime:[],flag:[{hex:"#DA251D",f:.75},{hex:"#FFCD00",f:.25}]},
+  {id:"Thailand",pop:72000000,gdp:500,area:513120,borders:[{id:"Myanmar",len:2416},{id:"Laos",len:1845},{id:"Cambodia",len:817},{id:"Malaysia",len:595}],maritime:[],flag:[{hex:"#A51931",f:.33},{hex:"#fff",f:.33},{hex:"#2D2A4A",f:.34}]},
+  {id:"Iran",pop:86000000,gdp:390,area:1648195,borders:[{id:"Iraq",len:1599},{id:"Turkey",len:534},{id:"Armenia",len:44},{id:"Azerbaijan",len:689},{id:"Turkmenistan",len:1148},{id:"Afghanistan",len:921},{id:"Pakistan",len:959}],maritime:["Bahrain","Qatar","UAE","Oman"],flag:[{hex:"#239F40",f:.33},{hex:"#fff",f:.33},{hex:"#DA0000",f:.34}]},
+  {id:"Myanmar",pop:54000000,gdp:65,area:676578,borders:[{id:"Bangladesh",len:271},{id:"India",len:1468},{id:"China",len:2129},{id:"Laos",len:238},{id:"Thailand",len:2416}],maritime:[],flag:[{hex:"#FECB00",f:.33},{hex:"#34B233",f:.33},{hex:"#EA2839",f:.34}]},
+  {id:"South Korea",pop:51700000,gdp:1670,area:100210,borders:[{id:"North Korea",len:237}],maritime:["Japan","China"],flag:[{hex:"#fff",f:.5},{hex:"#C60C30",f:.25},{hex:"#003478",f:.25}]},
+  {id:"Iraq",pop:42000000,gdp:207,area:438317,borders:[{id:"Turkey",len:367},{id:"Iran",len:1599},{id:"Kuwait",len:254},{id:"Saudi Arabia",len:811},{id:"Jordan",len:179},{id:"Syria",len:599}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#fff",f:.33},{hex:"#000",f:.34}]},
+  {id:"Afghanistan",pop:40000000,gdp:14,area:652230,borders:[{id:"Pakistan",len:2670},{id:"Iran",len:921},{id:"Turkmenistan",len:804},{id:"Uzbekistan",len:144},{id:"Tajikistan",len:1357},{id:"China",len:91}],maritime:[],flag:[{hex:"#000",f:.33},{hex:"#CE1126",f:.33},{hex:"#007A36",f:.34}]},
+  {id:"Saudi Arabia",pop:36000000,gdp:1060,area:2149690,borders:[{id:"Jordan",len:731},{id:"Iraq",len:811},{id:"Kuwait",len:221},{id:"Qatar",len:87},{id:"UAE",len:457},{id:"Oman",len:658},{id:"Yemen",len:1307}],maritime:["Bahrain"],flag:[{hex:"#006C35",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Uzbekistan",pop:35000000,gdp:80,area:447400,borders:[{id:"Kazakhstan",len:2330},{id:"Kyrgyzstan",len:1314},{id:"Tajikistan",len:1312},{id:"Afghanistan",len:144},{id:"Turkmenistan",len:1793}],maritime:[],flag:[{hex:"#1EB53A",f:.33},{hex:"#0099B5",f:.33},{hex:"#CE1126",f:.17},{hex:"#fff",f:.17}]},
+  {id:"Malaysia",pop:33000000,gdp:373,area:329847,borders:[{id:"Thailand",len:595},{id:"Brunei",len:266},{id:"Indonesia",len:1881}],maritime:["Singapore","Philippines"],flag:[{hex:"#CC0001",f:.4},{hex:"#fff",f:.3},{hex:"#010066",f:.2},{hex:"#FC0",f:.1}]},
+  {id:"Nepal",pop:30000000,gdp:36,area:147181,borders:[{id:"China",len:1389},{id:"India",len:1770}],maritime:[],flag:[{hex:"#DC143C",f:.7},{hex:"#003893",f:.3}]},
+  {id:"North Korea",pop:26000000,gdp:18,area:120538,borders:[{id:"South Korea",len:237},{id:"China",len:1352},{id:"Russia",len:18}],maritime:[],flag:[{hex:"#ED1C27",f:.5},{hex:"#024FA2",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Taiwan",pop:23500000,gdp:790,area:36193,borders:[],maritime:["China","Japan","Philippines"],flag:[{hex:"#FE0000",f:.5},{hex:"#000095",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Syria",pop:22000000,gdp:11,area:185180,borders:[{id:"Turkey",len:899},{id:"Iraq",len:599},{id:"Jordan",len:379},{id:"Lebanon",len:403},{id:"Israel",len:83}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#fff",f:.17},{hex:"#000",f:.33},{hex:"#007A3D",f:.17}]},
+  {id:"Sri Lanka",pop:22000000,gdp:75,area:65610,borders:[],maritime:["India"],flag:[{hex:"#8B0000",f:.5},{hex:"#FF7722",f:.2},{hex:"#00853F",f:.2},{hex:"#FFBE29",f:.1}]},
+  {id:"Kazakhstan",pop:19600000,gdp:220,area:2724900,borders:[{id:"Russia",len:7644},{id:"China",len:1765},{id:"Kyrgyzstan",len:1212},{id:"Uzbekistan",len:2330},{id:"Turkmenistan",len:413}],maritime:[],flag:[{hex:"#00AFCA",f:.8},{hex:"#FEC50C",f:.2}]},
+  {id:"Cambodia",pop:17000000,gdp:27,area:181035,borders:[{id:"Thailand",len:817},{id:"Laos",len:555},{id:"Vietnam",len:1158}],maritime:[],flag:[{hex:"#032EA1",f:.5},{hex:"#E00025",f:.4},{hex:"#fff",f:.1}]},
+  {id:"Jordan",pop:11000000,gdp:46,area:89342,borders:[{id:"Syria",len:379},{id:"Iraq",len:179},{id:"Saudi Arabia",len:731},{id:"Israel",len:307}],maritime:[],flag:[{hex:"#000",f:.25},{hex:"#fff",f:.25},{hex:"#007A3D",f:.25},{hex:"#CE1126",f:.25}]},
+  {id:"Azerbaijan",pop:10200000,gdp:55,area:86600,borders:[{id:"Russia",len:338},{id:"Georgia",len:428},{id:"Armenia",len:996},{id:"Iran",len:689},{id:"Turkey",len:17}],maritime:[],flag:[{hex:"#0092BC",f:.33},{hex:"#E4002B",f:.33},{hex:"#00B140",f:.34}]},
+  {id:"UAE",pop:10000000,gdp:500,area:83600,borders:[{id:"Saudi Arabia",len:457},{id:"Oman",len:609}],maritime:["Iran","Qatar"],flag:[{hex:"#009736",f:.25},{hex:"#fff",f:.25},{hex:"#000",f:.25},{hex:"#CE1126",f:.25}]},
+  {id:"Israel",pop:9400000,gdp:520,area:20770,borders:[{id:"Lebanon",len:81},{id:"Syria",len:83},{id:"Jordan",len:307},{id:"Egypt",len:208}],maritime:[],flag:[{hex:"#fff",f:.7},{hex:"#0038B8",f:.3}]},
+  {id:"Tajikistan",pop:10000000,gdp:11,area:143100,borders:[{id:"Kyrgyzstan",len:984},{id:"China",len:477},{id:"Afghanistan",len:1357},{id:"Uzbekistan",len:1312}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#fff",f:.33},{hex:"#006600",f:.34}]},
+  {id:"Laos",pop:7500000,gdp:19,area:236800,borders:[{id:"Myanmar",len:238},{id:"China",len:475},{id:"Vietnam",len:2161},{id:"Cambodia",len:555},{id:"Thailand",len:1845}],maritime:[],flag:[{hex:"#CE1126",f:.4},{hex:"#002868",f:.4},{hex:"#fff",f:.2}]},
+  {id:"Lebanon",pop:5500000,gdp:19,area:10400,borders:[{id:"Syria",len:403},{id:"Israel",len:81}],maritime:["Cyprus"],flag:[{hex:"#ED1C24",f:.33},{hex:"#fff",f:.5},{hex:"#00A651",f:.17}]},
+  {id:"Kyrgyzstan",pop:6900000,gdp:11,area:199951,borders:[{id:"Kazakhstan",len:1212},{id:"China",len:1063},{id:"Tajikistan",len:984},{id:"Uzbekistan",len:1314}],maritime:[],flag:[{hex:"#E8112D",f:.8},{hex:"#FFEF00",f:.2}]},
+  {id:"Turkmenistan",pop:6300000,gdp:45,area:488100,borders:[{id:"Kazakhstan",len:413},{id:"Uzbekistan",len:1793},{id:"Afghanistan",len:804},{id:"Iran",len:1148}],maritime:[],flag:[{hex:"#00843D",f:.7},{hex:"#fff",f:.15},{hex:"#CE1126",f:.15}]},
+  {id:"Singapore",pop:5900000,gdp:397,area:733,borders:[],maritime:["Malaysia","Indonesia"],flag:[{hex:"#ED2939",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Oman",pop:4500000,gdp:100,area:309500,borders:[{id:"UAE",len:609},{id:"Saudi Arabia",len:658},{id:"Yemen",len:294}],maritime:["Iran"],flag:[{hex:"#CE1126",f:.4},{hex:"#fff",f:.2},{hex:"#009A44",f:.2},{hex:"#DB161B",f:.2}]},
+  {id:"Yemen",pop:34000000,gdp:21,area:527968,borders:[{id:"Saudi Arabia",len:1307},{id:"Oman",len:294}],maritime:["Eritrea","Djibouti","Somalia"],flag:[{hex:"#CE1126",f:.33},{hex:"#fff",f:.33},{hex:"#000",f:.34}]},
+  {id:"Kuwait",pop:4300000,gdp:135,area:17818,borders:[{id:"Iraq",len:254},{id:"Saudi Arabia",len:221}],maritime:[],flag:[{hex:"#007A3D",f:.33},{hex:"#fff",f:.33},{hex:"#CE1126",f:.2},{hex:"#000",f:.14}]},
+  {id:"Georgia",pop:3700000,gdp:19,area:69700,borders:[{id:"Russia",len:894},{id:"Turkey",len:273},{id:"Armenia",len:219},{id:"Azerbaijan",len:428}],maritime:[],flag:[{hex:"#fff",f:.6},{hex:"#FF0000",f:.4}]},
+  {id:"Mongolia",pop:3400000,gdp:15,area:1564116,borders:[{id:"Russia",len:3452},{id:"China",len:4630}],maritime:[],flag:[{hex:"#C4272E",f:.4},{hex:"#015197",f:.4},{hex:"#F9CF02",f:.2}]},
+  {id:"Armenia",pop:3000000,gdp:14,area:29743,borders:[{id:"Georgia",len:219},{id:"Azerbaijan",len:996},{id:"Iran",len:44},{id:"Turkey",len:311}],maritime:[],flag:[{hex:"#D90012",f:.33},{hex:"#0033A0",f:.33},{hex:"#F2A800",f:.34}]},
+  {id:"Qatar",pop:2900000,gdp:220,area:11586,borders:[{id:"Saudi Arabia",len:87}],maritime:["UAE","Iran","Bahrain"],flag:[{hex:"#8D1B3D",f:.7},{hex:"#fff",f:.3}]},
+  {id:"Bahrain",pop:1500000,gdp:39,area:786,borders:[],maritime:["Saudi Arabia","Qatar","Iran"],flag:[{hex:"#CE1126",f:.7},{hex:"#fff",f:.3}]},
+  {id:"East Timor",pop:1300000,gdp:2,area:14874,borders:[{id:"Indonesia",len:253}],maritime:["Australia"],flag:[{hex:"#DC241F",f:.5},{hex:"#000",f:.25},{hex:"#FFC726",f:.15},{hex:"#fff",f:.1}]},
+  {id:"Bhutan",pop:780000,gdp:3,area:38394,borders:[{id:"China",len:477},{id:"India",len:659}],maritime:[],flag:[{hex:"#FF7E00",f:.5},{hex:"#FFD520",f:.5}]},
+  {id:"Maldives",pop:540000,gdp:6,area:298,borders:[],maritime:["India","Sri Lanka"],flag:[{hex:"#D21034",f:.5},{hex:"#007E3A",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Brunei",pop:440000,gdp:14,area:5765,borders:[{id:"Malaysia",len:266}],maritime:[],flag:[{hex:"#F7E017",f:.6},{hex:"#000",f:.2},{hex:"#fff",f:.2}]},
+  // AFRICA
+  {id:"Nigeria",pop:218000000,gdp:440,area:923768,borders:[{id:"Benin",len:809},{id:"Niger",len:1608},{id:"Chad",len:85},{id:"Cameroon",len:1975}],maritime:[],flag:[{hex:"#008751",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Ethiopia",pop:120000000,gdp:111,area:1104300,borders:[{id:"Eritrea",len:1033},{id:"Djibouti",len:342},{id:"Somalia",len:1640},{id:"Kenya",len:867},{id:"South Sudan",len:1299},{id:"Sudan",len:744}],maritime:[],flag:[{hex:"#009A44",f:.33},{hex:"#FCDD09",f:.33},{hex:"#DA121A",f:.34}]},
+  {id:"Egypt",pop:104000000,gdp:400,area:1001450,borders:[{id:"Libya",len:1115},{id:"Sudan",len:1276},{id:"Israel",len:208},{id:"Palestine",len:11}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#fff",f:.33},{hex:"#000",f:.34}]},
+  {id:"DR Congo",pop:99000000,gdp:64,area:2344858,borders:[{id:"Republic of Congo",len:1775},{id:"Central African Republic",len:1747},{id:"South Sudan",len:714},{id:"Uganda",len:877},{id:"Rwanda",len:221},{id:"Burundi",len:236},{id:"Tanzania",len:479},{id:"Zambia",len:2332},{id:"Angola",len:2646}],maritime:[],flag:[{hex:"#007FFF",f:.6},{hex:"#CE1021",f:.2},{hex:"#F7D618",f:.2}]},
+  {id:"Tanzania",pop:63000000,gdp:75,area:947300,borders:[{id:"Kenya",len:775},{id:"Uganda",len:391},{id:"Rwanda",len:222},{id:"Burundi",len:589},{id:"DR Congo",len:479},{id:"Zambia",len:338},{id:"Malawi",len:512},{id:"Mozambique",len:840}],maritime:[],flag:[{hex:"#1EB53A",f:.33},{hex:"#00A3DD",f:.33},{hex:"#FCD116",f:.17},{hex:"#000",f:.17}]},
+  {id:"South Africa",pop:60000000,gdp:400,area:1219090,borders:[{id:"Namibia",len:1005},{id:"Botswana",len:1969},{id:"Zimbabwe",len:230},{id:"Mozambique",len:496},{id:"Eswatini",len:438},{id:"Lesotho",len:1106}],maritime:[],flag:[{hex:"#007A4D",f:.25},{hex:"#FFB612",f:.2},{hex:"#DE3831",f:.2},{hex:"#002395",f:.15},{hex:"#000",f:.1},{hex:"#fff",f:.1}]},
+  {id:"Kenya",pop:54000000,gdp:113,area:580367,borders:[{id:"Ethiopia",len:867},{id:"Somalia",len:684},{id:"Tanzania",len:775},{id:"Uganda",len:814},{id:"South Sudan",len:317}],maritime:[],flag:[{hex:"#000",f:.33},{hex:"#BB0000",f:.33},{hex:"#006600",f:.2},{hex:"#fff",f:.14}]},
+  {id:"Sudan",pop:45000000,gdp:34,area:1861484,borders:[{id:"Egypt",len:1276},{id:"Libya",len:382},{id:"Chad",len:1403},{id:"Central African Republic",len:174},{id:"South Sudan",len:2158},{id:"Ethiopia",len:744},{id:"Eritrea",len:682}],maritime:[],flag:[{hex:"#D21034",f:.33},{hex:"#fff",f:.33},{hex:"#000",f:.2},{hex:"#007229",f:.14}]},
+  {id:"Algeria",pop:45000000,gdp:187,area:2381741,borders:[{id:"Morocco",len:1941},{id:"Tunisia",len:1034},{id:"Libya",len:989},{id:"Niger",len:951},{id:"Mali",len:1359},{id:"Mauritania",len:460}],maritime:[],flag:[{hex:"#006633",f:.5},{hex:"#fff",f:.3},{hex:"#D21034",f:.2}]},
+  {id:"Morocco",pop:37000000,gdp:132,area:446550,borders:[{id:"Algeria",len:1941},{id:"Spain",len:18},{id:"Mauritania",len:1564}],maritime:[],flag:[{hex:"#C1272D",f:.8},{hex:"#006233",f:.2}]},
+  {id:"Uganda",pop:46000000,gdp:46,area:241038,borders:[{id:"South Sudan",len:475},{id:"Kenya",len:814},{id:"Tanzania",len:391},{id:"Rwanda",len:172},{id:"DR Congo",len:877}],maritime:[],flag:[{hex:"#000",f:.33},{hex:"#FCDC04",f:.33},{hex:"#D90000",f:.34}]},
+  {id:"Ghana",pop:33000000,gdp:73,area:238533,borders:[{id:"Ivory Coast",len:720},{id:"Burkina Faso",len:602},{id:"Togo",len:877}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#FCD116",f:.33},{hex:"#006B3F",f:.34}]},
+  {id:"Mozambique",pop:32000000,gdp:16,area:801590,borders:[{id:"Tanzania",len:840},{id:"Malawi",len:1498},{id:"Zambia",len:439},{id:"Zimbabwe",len:1402},{id:"South Africa",len:496},{id:"Eswatini",len:108}],maritime:["Madagascar"],flag:[{hex:"#009A44",f:.3},{hex:"#000",f:.2},{hex:"#FCE100",f:.2},{hex:"#fff",f:.15},{hex:"#D21034",f:.15}]},
+  {id:"Madagascar",pop:29000000,gdp:14,area:587041,borders:[],maritime:["Mozambique"],flag:[{hex:"#fff",f:.33},{hex:"#FC3D32",f:.33},{hex:"#007E3A",f:.34}]},
+  {id:"Ivory Coast",pop:27000000,gdp:70,area:322463,borders:[{id:"Liberia",len:778},{id:"Guinea",len:816},{id:"Mali",len:599},{id:"Burkina Faso",len:545},{id:"Ghana",len:720}],maritime:[],flag:[{hex:"#F77F00",f:.33},{hex:"#fff",f:.33},{hex:"#009E60",f:.34}]},
+  {id:"Cameroon",pop:27000000,gdp:45,area:475442,borders:[{id:"Nigeria",len:1975},{id:"Chad",len:1116},{id:"Central African Republic",len:901},{id:"Republic of Congo",len:494},{id:"Gabon",len:349},{id:"Equatorial Guinea",len:183}],maritime:[],flag:[{hex:"#007A5E",f:.33},{hex:"#CE1126",f:.33},{hex:"#FCD116",f:.34}]},
+  {id:"Angola",pop:34000000,gdp:75,area:1246700,borders:[{id:"DR Congo",len:2646},{id:"Republic of Congo",len:231},{id:"Zambia",len:1065},{id:"Namibia",len:1427}],maritime:[],flag:[{hex:"#CE1126",f:.5},{hex:"#000",f:.3},{hex:"#FFCE00",f:.2}]},
+  {id:"Niger",pop:25000000,gdp:15,area:1267000,borders:[{id:"Algeria",len:951},{id:"Libya",len:342},{id:"Chad",len:1196},{id:"Nigeria",len:1608},{id:"Benin",len:277},{id:"Burkina Faso",len:622},{id:"Mali",len:838}],maritime:[],flag:[{hex:"#E05206",f:.33},{hex:"#fff",f:.33},{hex:"#0DB02B",f:.34}]},
+  {id:"Mali",pop:21000000,gdp:19,area:1240192,borders:[{id:"Algeria",len:1359},{id:"Niger",len:838},{id:"Burkina Faso",len:1325},{id:"Ivory Coast",len:599},{id:"Guinea",len:1062},{id:"Senegal",len:489},{id:"Mauritania",len:2236}],maritime:[],flag:[{hex:"#009A00",f:.33},{hex:"#FCD116",f:.33},{hex:"#CE1126",f:.34}]},
+  {id:"Burkina Faso",pop:22000000,gdp:19,area:274200,borders:[{id:"Mali",len:1325},{id:"Niger",len:622},{id:"Benin",len:386},{id:"Togo",len:131},{id:"Ghana",len:602},{id:"Ivory Coast",len:545}],maritime:[],flag:[{hex:"#009E49",f:.5},{hex:"#EF2B2D",f:.3},{hex:"#FCD116",f:.2}]},
+  {id:"Malawi",pop:20000000,gdp:12,area:118484,borders:[{id:"Tanzania",len:512},{id:"Mozambique",len:1498},{id:"Zambia",len:847}],maritime:[],flag:[{hex:"#000",f:.33},{hex:"#CE1126",f:.33},{hex:"#009E49",f:.34}]},
+  {id:"Zambia",pop:19000000,gdp:21,area:752618,borders:[{id:"DR Congo",len:2332},{id:"Tanzania",len:338},{id:"Malawi",len:847},{id:"Mozambique",len:439},{id:"Zimbabwe",len:797},{id:"Botswana",len:1},{id:"Namibia",len:233},{id:"Angola",len:1065}],maritime:[],flag:[{hex:"#198A00",f:.6},{hex:"#000",f:.13},{hex:"#EF7D00",f:.13},{hex:"#DE2010",f:.14}]},
+  {id:"Senegal",pop:17000000,gdp:27,area:196722,borders:[{id:"Mauritania",len:742},{id:"Mali",len:489},{id:"Guinea",len:363},{id:"Guinea-Bissau",len:341},{id:"Gambia",len:749}],maritime:[],flag:[{hex:"#00853F",f:.33},{hex:"#FDEF42",f:.33},{hex:"#E31B23",f:.34}]},
+  {id:"Chad",pop:17000000,gdp:12,area:1284000,borders:[{id:"Libya",len:1050},{id:"Sudan",len:1403},{id:"Central African Republic",len:1556},{id:"Cameroon",len:1116},{id:"Nigeria",len:85},{id:"Niger",len:1196}],maritime:[],flag:[{hex:"#002664",f:.33},{hex:"#FECB00",f:.33},{hex:"#C60C30",f:.34}]},
+  {id:"Somalia",pop:17000000,gdp:8,area:637657,borders:[{id:"Ethiopia",len:1640},{id:"Djibouti",len:61},{id:"Kenya",len:684}],maritime:[],flag:[{hex:"#4189DD",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Zimbabwe",pop:16000000,gdp:21,area:390757,borders:[{id:"Zambia",len:797},{id:"Mozambique",len:1402},{id:"South Africa",len:230},{id:"Botswana",len:834}],maritime:[],flag:[{hex:"#006400",f:.28},{hex:"#FFD200",f:.14},{hex:"#D21034",f:.14},{hex:"#000",f:.28},{hex:"#fff",f:.16}]},
+  {id:"Guinea",pop:13000000,gdp:16,area:245857,borders:[{id:"Guinea-Bissau",len:421},{id:"Senegal",len:363},{id:"Mali",len:1062},{id:"Ivory Coast",len:816},{id:"Liberia",len:590},{id:"Sierra Leone",len:794}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#FCD116",f:.33},{hex:"#009460",f:.34}]},
+  {id:"Rwanda",pop:13000000,gdp:11,area:26338,borders:[{id:"Uganda",len:172},{id:"Tanzania",len:222},{id:"Burundi",len:315},{id:"DR Congo",len:221}],maritime:[],flag:[{hex:"#00A1DE",f:.5},{hex:"#FAD201",f:.25},{hex:"#20603D",f:.25}]},
+  {id:"Benin",pop:13000000,gdp:17,area:112622,borders:[{id:"Togo",len:651},{id:"Burkina Faso",len:386},{id:"Niger",len:277},{id:"Nigeria",len:809}],maritime:[],flag:[{hex:"#008751",f:.33},{hex:"#FCD116",f:.33},{hex:"#E8112D",f:.34}]},
+  {id:"Tunisia",pop:12000000,gdp:47,area:163610,borders:[{id:"Algeria",len:1034},{id:"Libya",len:461}],maritime:["Italy","Malta"],flag:[{hex:"#E70013",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Burundi",pop:12000000,gdp:3,area:27830,borders:[{id:"DR Congo",len:236},{id:"Rwanda",len:315},{id:"Tanzania",len:589}],maritime:[],flag:[{hex:"#CE1126",f:.4},{hex:"#1EB53A",f:.4},{hex:"#fff",f:.2}]},
+  {id:"South Sudan",pop:11000000,gdp:5,area:644329,borders:[{id:"Sudan",len:2158},{id:"Ethiopia",len:1299},{id:"Kenya",len:317},{id:"Uganda",len:475},{id:"DR Congo",len:714},{id:"Central African Republic",len:1055}],maritime:[],flag:[{hex:"#000",f:.25},{hex:"#CE1126",f:.25},{hex:"#078930",f:.25},{hex:"#0F47AF",f:.15},{hex:"#FCDD09",f:.1}]},
+  {id:"Togo",pop:8500000,gdp:8,area:56785,borders:[{id:"Ghana",len:877},{id:"Burkina Faso",len:131},{id:"Benin",len:651}],maritime:[],flag:[{hex:"#006A4E",f:.4},{hex:"#FFCE00",f:.3},{hex:"#D21034",f:.2},{hex:"#fff",f:.1}]},
+  {id:"Sierra Leone",pop:8200000,gdp:4,area:71740,borders:[{id:"Guinea",len:794},{id:"Liberia",len:299}],maritime:[],flag:[{hex:"#1EB53A",f:.33},{hex:"#fff",f:.33},{hex:"#0072C6",f:.34}]},
+  {id:"Libya",pop:7000000,gdp:42,area:1759540,borders:[{id:"Tunisia",len:461},{id:"Algeria",len:989},{id:"Niger",len:342},{id:"Chad",len:1050},{id:"Sudan",len:382},{id:"Egypt",len:1115}],maritime:["Malta"],flag:[{hex:"#000",f:.33},{hex:"#E70013",f:.33},{hex:"#239E46",f:.34}]},
+  {id:"Eritrea",pop:3600000,gdp:2,area:117600,borders:[{id:"Sudan",len:682},{id:"Ethiopia",len:1033},{id:"Djibouti",len:125}],maritime:[],flag:[{hex:"#EA0437",f:.33},{hex:"#12AD2B",f:.33},{hex:"#3D85C6",f:.2},{hex:"#FFC61E",f:.14}]},
+  {id:"Central African Republic",pop:5000000,gdp:2,area:622984,borders:[{id:"Chad",len:1556},{id:"Sudan",len:174},{id:"South Sudan",len:1055},{id:"DR Congo",len:1747},{id:"Republic of Congo",len:487},{id:"Cameroon",len:901}],maritime:[],flag:[{hex:"#003082",f:.25},{hex:"#fff",f:.25},{hex:"#289728",f:.2},{hex:"#FFCE00",f:.15},{hex:"#D21034",f:.15}]},
+  {id:"Republic of Congo",pop:6000000,gdp:13,area:342000,borders:[{id:"Gabon",len:2567},{id:"Cameroon",len:494},{id:"Central African Republic",len:487},{id:"DR Congo",len:1775},{id:"Angola",len:231}],maritime:[],flag:[{hex:"#009543",f:.33},{hex:"#FBDE4A",f:.33},{hex:"#DC241F",f:.34}]},
+  {id:"Liberia",pop:5200000,gdp:4,area:111369,borders:[{id:"Sierra Leone",len:299},{id:"Guinea",len:590},{id:"Ivory Coast",len:778}],maritime:[],flag:[{hex:"#BF0A30",f:.5},{hex:"#fff",f:.3},{hex:"#002868",f:.2}]},
+  {id:"Mauritania",pop:4700000,gdp:10,area:1030700,borders:[{id:"Algeria",len:460},{id:"Mali",len:2236},{id:"Senegal",len:742}],maritime:[],flag:[{hex:"#006233",f:.7},{hex:"#C09300",f:.2},{hex:"#CD2A3E",f:.1}]},
+  {id:"Namibia",pop:2600000,gdp:12,area:824292,borders:[{id:"Angola",len:1427},{id:"Zambia",len:233},{id:"Botswana",len:1544},{id:"South Africa",len:1005}],maritime:[],flag:[{hex:"#003580",f:.33},{hex:"#009543",f:.33},{hex:"#D21034",f:.2},{hex:"#FFD100",f:.14}]},
+  {id:"Botswana",pop:2400000,gdp:18,area:581730,borders:[{id:"South Africa",len:1969},{id:"Namibia",len:1544},{id:"Zimbabwe",len:834},{id:"Zambia",len:1}],maritime:[],flag:[{hex:"#75AADB",f:.6},{hex:"#000",f:.2},{hex:"#fff",f:.2}]},
+  {id:"Lesotho",pop:2200000,gdp:3,area:30355,borders:[{id:"South Africa",len:1106}],maritime:[],flag:[{hex:"#009543",f:.33},{hex:"#00209F",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Gambia",pop:2500000,gdp:2,area:11295,borders:[{id:"Senegal",len:749}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#0C1C8C",f:.33},{hex:"#3A7728",f:.2},{hex:"#fff",f:.14}]},
+  {id:"Gabon",pop:2300000,gdp:19,area:267668,borders:[{id:"Equatorial Guinea",len:345},{id:"Cameroon",len:349},{id:"Republic of Congo",len:2567}],maritime:[],flag:[{hex:"#009E60",f:.33},{hex:"#FCD116",f:.33},{hex:"#3A75C4",f:.34}]},
+  {id:"Guinea-Bissau",pop:2000000,gdp:2,area:36125,borders:[{id:"Senegal",len:341},{id:"Guinea",len:421}],maritime:[],flag:[{hex:"#CE1126",f:.33},{hex:"#FCD116",f:.33},{hex:"#009E49",f:.2},{hex:"#000",f:.14}]},
+  {id:"Eswatini",pop:1200000,gdp:5,area:17364,borders:[{id:"South Africa",len:438},{id:"Mozambique",len:108}],maritime:[],flag:[{hex:"#3E5EB9",f:.3},{hex:"#FED100",f:.3},{hex:"#B10C0C",f:.2},{hex:"#000",f:.1},{hex:"#fff",f:.1}]},
+  {id:"Djibouti",pop:1000000,gdp:4,area:23200,borders:[{id:"Ethiopia",len:342},{id:"Eritrea",len:125},{id:"Somalia",len:61}],maritime:[],flag:[{hex:"#6AB2E7",f:.4},{hex:"#12AD2B",f:.4},{hex:"#fff",f:.2}]},
+  {id:"Equatorial Guinea",pop:1600000,gdp:12,area:28051,borders:[{id:"Cameroon",len:183},{id:"Gabon",len:345}],maritime:[],flag:[{hex:"#3E9A00",f:.33},{hex:"#fff",f:.17},{hex:"#E32118",f:.33},{hex:"#0073CE",f:.17}]},
+  {id:"Mauritius",pop:1300000,gdp:11,area:2040,borders:[],maritime:["Madagascar"],flag:[{hex:"#EA2839",f:.25},{hex:"#1A206D",f:.25},{hex:"#FFD500",f:.25},{hex:"#00A651",f:.25}]},
+  {id:"Comoros",pop:900000,gdp:1,area:2235,borders:[],maritime:["Madagascar","Mozambique"],flag:[{hex:"#3A75C4",f:.25},{hex:"#FFC61E",f:.25},{hex:"#CE1126",f:.25},{hex:"#009E49",f:.25}]},
+  {id:"Cape Verde",pop:560000,gdp:2,area:4033,borders:[],maritime:["Senegal","Mauritania"],flag:[{hex:"#003893",f:.6},{hex:"#CF2027",f:.2},{hex:"#F7D116",f:.1},{hex:"#fff",f:.1}]},
+  {id:"Sao Tome and Principe",pop:220000,gdp:1,area:964,borders:[],maritime:["Gabon","Equatorial Guinea"],flag:[{hex:"#12AD2B",f:.4},{hex:"#FFCE00",f:.3},{hex:"#D21034",f:.15},{hex:"#000",f:.15}]},
+  {id:"Seychelles",pop:100000,gdp:2,area:455,borders:[],maritime:["Madagascar","Mauritius"],flag:[{hex:"#003F87",f:.25},{hex:"#FCD856",f:.25},{hex:"#D62828",f:.25},{hex:"#007A3D",f:.15},{hex:"#fff",f:.1}]},
+  // AMERICAS
+  {id:"United States",pop:332000000,gdp:25460,area:9833520,borders:[{id:"Canada",len:8893},{id:"Mexico",len:3145}],maritime:["Cuba","Bahamas"],flag:[{hex:"#B22234",f:.4},{hex:"#fff",f:.3},{hex:"#3C3B6E",f:.3}]},
+  {id:"Brazil",pop:215000000,gdp:1920,area:8515770,borders:[{id:"French Guiana",len:649},{id:"Suriname",len:515},{id:"Guyana",len:1308},{id:"Venezuela",len:2137},{id:"Colombia",len:1790},{id:"Peru",len:2659},{id:"Bolivia",len:3403},{id:"Paraguay",len:1371},{id:"Argentina",len:1263},{id:"Uruguay",len:1050}],maritime:[],flag:[{hex:"#009B3A",f:.5},{hex:"#FEDF00",f:.3},{hex:"#002776",f:.2}]},
+  {id:"Mexico",pop:130000000,gdp:1320,area:1964375,borders:[{id:"United States",len:3145},{id:"Guatemala",len:958},{id:"Belize",len:276}],maritime:["Cuba"],flag:[{hex:"#006847",f:.33},{hex:"#fff",f:.33},{hex:"#CE1126",f:.34}]},
+  {id:"Colombia",pop:51000000,gdp:340,area:1138910,borders:[{id:"Venezuela",len:2341},{id:"Brazil",len:1790},{id:"Peru",len:1494},{id:"Ecuador",len:708},{id:"Panama",len:339}],maritime:[],flag:[{hex:"#FCD116",f:.5},{hex:"#003893",f:.25},{hex:"#CE1126",f:.25}]},
+  {id:"Argentina",pop:46000000,gdp:630,area:2780400,borders:[{id:"Chile",len:6691},{id:"Bolivia",len:942},{id:"Paraguay",len:2531},{id:"Brazil",len:1263},{id:"Uruguay",len:541}],maritime:[],flag:[{hex:"#74ACDF",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Canada",pop:38000000,gdp:2140,area:9984670,borders:[{id:"United States",len:8893}],maritime:[],flag:[{hex:"#FF0000",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Peru",pop:33000000,gdp:240,area:1285216,borders:[{id:"Ecuador",len:1529},{id:"Colombia",len:1494},{id:"Brazil",len:2659},{id:"Bolivia",len:1212},{id:"Chile",len:168}],maritime:[],flag:[{hex:"#D91023",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Venezuela",pop:28000000,gdp:100,area:912050,borders:[{id:"Colombia",len:2341},{id:"Brazil",len:2137},{id:"Guyana",len:789}],maritime:["Trinidad and Tobago"],flag:[{hex:"#FCE300",f:.33},{hex:"#00247D",f:.33},{hex:"#CF142B",f:.34}]},
+  {id:"Chile",pop:19500000,gdp:300,area:756102,borders:[{id:"Peru",len:168},{id:"Bolivia",len:942},{id:"Argentina",len:6691}],maritime:[],flag:[{hex:"#D52B1E",f:.4},{hex:"#fff",f:.4},{hex:"#0039A6",f:.2}]},
+  {id:"Ecuador",pop:18000000,gdp:115,area:276841,borders:[{id:"Colombia",len:708},{id:"Peru",len:1529}],maritime:[],flag:[{hex:"#FFD100",f:.5},{hex:"#034EA2",f:.25},{hex:"#CE1126",f:.25}]},
+  {id:"Guatemala",pop:17000000,gdp:86,area:108889,borders:[{id:"Mexico",len:958},{id:"Belize",len:266},{id:"Honduras",len:244},{id:"El Salvador",len:199}],maritime:[],flag:[{hex:"#4997D0",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Bolivia",pop:12000000,gdp:41,area:1098581,borders:[{id:"Brazil",len:3403},{id:"Paraguay",len:753},{id:"Argentina",len:942},{id:"Chile",len:942},{id:"Peru",len:1212}],maritime:[],flag:[{hex:"#D52B1E",f:.33},{hex:"#F9E300",f:.33},{hex:"#007934",f:.34}]},
+  {id:"Cuba",pop:11300000,gdp:100,area:109884,borders:[],maritime:["United States","Mexico","Jamaica","Bahamas"],flag:[{hex:"#002A8F",f:.4},{hex:"#fff",f:.3},{hex:"#CB1515",f:.3}]},
+  {id:"Haiti",pop:11600000,gdp:20,area:27750,borders:[{id:"Dominican Republic",len:376}],maritime:["Cuba","Jamaica"],flag:[{hex:"#00209F",f:.5},{hex:"#D21034",f:.5}]},
+  {id:"Dominican Republic",pop:11000000,gdp:100,area:48671,borders:[{id:"Haiti",len:376}],maritime:[],flag:[{hex:"#002D62",f:.33},{hex:"#CE1126",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Honduras",pop:10000000,gdp:29,area:112090,borders:[{id:"Guatemala",len:244},{id:"El Salvador",len:391},{id:"Nicaragua",len:940}],maritime:[],flag:[{hex:"#0073CF",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Paraguay",pop:7400000,gdp:41,area:406752,borders:[{id:"Argentina",len:2531},{id:"Bolivia",len:753},{id:"Brazil",len:1371}],maritime:[],flag:[{hex:"#D52B1E",f:.33},{hex:"#fff",f:.33},{hex:"#0038A8",f:.34}]},
+  {id:"El Salvador",pop:6500000,gdp:33,area:21041,borders:[{id:"Guatemala",len:199},{id:"Honduras",len:391}],maritime:[],flag:[{hex:"#0F47AF",f:.67},{hex:"#fff",f:.33}]},
+  {id:"Nicaragua",pop:6800000,gdp:15,area:130373,borders:[{id:"Honduras",len:940},{id:"Costa Rica",len:313}],maritime:[],flag:[{hex:"#000080",f:.5},{hex:"#fff",f:.5}]},
+  {id:"Costa Rica",pop:5200000,gdp:68,area:51100,borders:[{id:"Nicaragua",len:313},{id:"Panama",len:330}],maritime:[],flag:[{hex:"#002B7F",f:.33},{hex:"#CE1126",f:.33},{hex:"#fff",f:.34}]},
+  {id:"Panama",pop:4400000,gdp:72,area:75420,borders:[{id:"Costa Rica",len:330},{id:"Colombia",len:339}],maritime:[],flag:[{hex:"#fff",f:.4},{hex:"#005293",f:.3},{hex:"#D21034",f:.3}]},
+  {id:"Uruguay",pop:3500000,gdp:72,area:176215,borders:[{id:"Brazil",len:1050},{id:"Argentina",len:541}],maritime:[],flag:[{hex:"#fff",f:.5},{hex:"#0038A8",f:.3},{hex:"#FCD116",f:.2}]},
+  {id:"Jamaica",pop:3000000,gdp:17,area:10991,borders:[],maritime:["Cuba","Haiti"],flag:[{hex:"#009B3A",f:.4},{hex:"#000",f:.4},{hex:"#FED100",f:.2}]},
+  {id:"Trinidad and Tobago",pop:1400000,gdp:25,area:5128,borders:[],maritime:["Venezuela","Grenada"],flag:[{hex:"#CE1126",f:.5},{hex:"#000",f:.3},{hex:"#fff",f:.2}]},
+  {id:"Guyana",pop:800000,gdp:15,area:214969,borders:[{id:"Venezuela",len:789},{id:"Brazil",len:1308},{id:"Suriname",len:836}],maritime:[],flag:[{hex:"#009E49",f:.5},{hex:"#FCD116",f:.2},{hex:"#CE1126",f:.15},{hex:"#000",f:.1},{hex:"#fff",f:.05}]},
+  {id:"Suriname",pop:600000,gdp:3,area:163820,borders:[{id:"Guyana",len:836},{id:"Brazil",len:515},{id:"French Guiana",len:510}],maritime:[],flag:[{hex:"#377E3F",f:.33},{hex:"#B40A2D",f:.33},{hex:"#fff",f:.2},{hex:"#ECC81D",f:.14}]},
+  {id:"Belize",pop:400000,gdp:3,area:22966,borders:[{id:"Mexico",len:276},{id:"Guatemala",len:266}],maritime:[],flag:[{hex:"#003F87",f:.6},{hex:"#CE1126",f:.2},{hex:"#fff",f:.2}]},
+  {id:"Bahamas",pop:400000,gdp:13,area:13880,borders:[],maritime:["United States","Cuba"],flag:[{hex:"#00ABC9",f:.5},{hex:"#000",f:.25},{hex:"#FFB81C",f:.25}]},
+  {id:"Barbados",pop:288000,gdp:5,area:430,borders:[],maritime:["Trinidad and Tobago","Saint Lucia","Saint Vincent and the Grenadines"],flag:[{hex:"#00267F",f:.4},{hex:"#FFC726",f:.4},{hex:"#000",f:.2}]},
+  {id:"Saint Lucia",pop:180000,gdp:2,area:616,borders:[],maritime:["Barbados","Saint Vincent and the Grenadines","Dominica"],flag:[{hex:"#65CFFF",f:.5},{hex:"#FCD116",f:.2},{hex:"#000",f:.15},{hex:"#fff",f:.15}]},
+  {id:"Grenada",pop:125000,gdp:1,area:344,borders:[],maritime:["Trinidad and Tobago","Saint Vincent and the Grenadines"],flag:[{hex:"#CE1126",f:.4},{hex:"#007A5E",f:.3},{hex:"#FCD116",f:.3}]},
+  {id:"Saint Vincent and the Grenadines",pop:110000,gdp:1,area:389,borders:[],maritime:["Barbados","Saint Lucia","Grenada"],flag:[{hex:"#0072C6",f:.33},{hex:"#FCD116",f:.34},{hex:"#009E60",f:.33}]},
+  {id:"Antigua and Barbuda",pop:100000,gdp:2,area:443,borders:[],maritime:["Saint Kitts and Nevis","Dominica"],flag:[{hex:"#CE1126",f:.4},{hex:"#000",f:.3},{hex:"#0072C6",f:.15},{hex:"#FCD116",f:.15}]},
+  {id:"Dominica",pop:72000,gdp:1,area:751,borders:[],maritime:["Saint Lucia","Antigua and Barbuda"],flag:[{hex:"#006B3F",f:.5},{hex:"#FCD116",f:.15},{hex:"#000",f:.1},{hex:"#fff",f:.1},{hex:"#D41C30",f:.15}]},
+  {id:"Saint Kitts and Nevis",pop:53000,gdp:1,area:261,borders:[],maritime:["Antigua and Barbuda"],flag:[{hex:"#009E49",f:.35},{hex:"#CE1126",f:.35},{hex:"#000",f:.15},{hex:"#FCD116",f:.15}]},
+  {id:"French Guiana",pop:300000,gdp:5,area:83534,borders:[{id:"Brazil",len:649},{id:"Suriname",len:510}],maritime:[],flag:[{hex:"#009E60",f:.5},{hex:"#FCD116",f:.5}]},
+  // OCEANIA
+  {id:"Australia",pop:26000000,gdp:1680,area:7741220,borders:[],maritime:["Indonesia","Papua New Guinea","New Zealand","East Timor"],flag:[{hex:"#012169",f:.5},{hex:"#fff",f:.3},{hex:"#E4002B",f:.2}]},
+  {id:"Papua New Guinea",pop:10000000,gdp:30,area:462840,borders:[{id:"Indonesia",len:824}],maritime:["Australia"],flag:[{hex:"#000",f:.5},{hex:"#CE1126",f:.5}]},
+  {id:"New Zealand",pop:5100000,gdp:250,area:268021,borders:[],maritime:["Australia"],flag:[{hex:"#012169",f:.6},{hex:"#C8102E",f:.2},{hex:"#fff",f:.2}]},
+  {id:"Fiji",pop:900000,gdp:5,area:18274,borders:[],maritime:["New Zealand"],flag:[{hex:"#68BFE5",f:.6},{hex:"#002868",f:.2},{hex:"#fff",f:.1},{hex:"#CE1126",f:.1}]},
+  {id:"Solomon Islands",pop:700000,gdp:2,area:28896,borders:[],maritime:["Papua New Guinea"],flag:[{hex:"#0051A5",f:.4},{hex:"#215B33",f:.4},{hex:"#FCD116",f:.2}]},
+  {id:"Vanuatu",pop:320000,gdp:1,area:12189,borders:[],maritime:["New Caledonia","Fiji","Solomon Islands"],flag:[{hex:"#D21034",f:.35},{hex:"#009543",f:.35},{hex:"#000",f:.2},{hex:"#FDCE12",f:.1}]},
+  {id:"Samoa",pop:200000,gdp:1,area:2831,borders:[],maritime:["Fiji","Tonga"],flag:[{hex:"#CE1126",f:.6},{hex:"#002B7F",f:.2},{hex:"#fff",f:.2}]},
+  {id:"Tonga",pop:100000,gdp:0.5,area:747,borders:[],maritime:["Fiji","Samoa"],flag:[{hex:"#C10000",f:.7},{hex:"#fff",f:.3}]},
+  {id:"Micronesia",pop:115000,gdp:0.4,area:702,borders:[],maritime:["Papua New Guinea","Palau"],flag:[{hex:"#75B2DD",f:.8},{hex:"#fff",f:.2}]},
+  {id:"Palau",pop:18000,gdp:0.3,area:459,borders:[],maritime:["Micronesia","Philippines"],flag:[{hex:"#4AADD6",f:.7},{hex:"#FFDE00",f:.3}]},
+  {id:"Marshall Islands",pop:42000,gdp:0.3,area:181,borders:[],maritime:["Micronesia"],flag:[{hex:"#003893",f:.6},{hex:"#DD7500",f:.2},{hex:"#fff",f:.2}]},
+  {id:"Kiribati",pop:120000,gdp:0.2,area:811,borders:[],maritime:["Marshall Islands"],flag:[{hex:"#CE1126",f:.5},{hex:"#003F87",f:.3},{hex:"#FCD116",f:.1},{hex:"#fff",f:.1}]},
+  {id:"Tuvalu",pop:12000,gdp:0.06,area:26,borders:[],maritime:["Fiji","Kiribati"],flag:[{hex:"#012169",f:.5},{hex:"#009FC3",f:.3},{hex:"#FFCE00",f:.2}]},
+  {id:"Nauru",pop:10000,gdp:0.15,area:21,borders:[],maritime:["Kiribati","Solomon Islands"],flag:[{hex:"#002B7F",f:.7},{hex:"#FFC61E",f:.15},{hex:"#fff",f:.15}]},
+  // REMAINING
+  {id:"Palestine",pop:5200000,gdp:18,area:6020,borders:[{id:"Israel",len:97},{id:"Egypt",len:11}],maritime:[],flag:[{hex:"#000",f:.25},{hex:"#fff",f:.25},{hex:"#009736",f:.25},{hex:"#CE1126",f:.25}]},
+];
+
+function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+let sizeMode = 'area';
+
+function flagPieSvg(colors, diameter) {
+  const r = diameter / 2;
+  let paths = '';
+  let startAngle = -Math.PI / 2;
+  colors.forEach(c => {
+    const endAngle = startAngle + c.f * 2 * Math.PI;
+    const x1 = r + r * Math.cos(startAngle);
+    const y1 = r + r * Math.sin(startAngle);
+    const x2 = r + r * Math.cos(endAngle);
+    const y2 = r + r * Math.sin(endAngle);
+    const largeArc = c.f > 0.5 ? 1 : 0;
+    if (c.f >= 0.999) {
+      paths += `<circle cx="${r}" cy="${r}" r="${r}" fill="${c.hex}"/>`;
+    } else {
+      paths += `<path d="M${r},${r} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z" fill="${c.hex}"/>`;
+    }
+    startAngle = endAngle;
+  });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${diameter}" height="${diameter}">${paths}</svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+const countryIds = new Set(COUNTRIES.map(c => c.id));
+const landEdges = [];
+const maritimeEdges = [];
+const edgeSet = new Set();
+
+COUNTRIES.forEach(c => {
+  c.borders.forEach(({id: b, len}) => {
+    if (!countryIds.has(b)) return;
+    const key = [c.id, b].sort().join('||');
+    if (!edgeSet.has(key)) { edgeSet.add(key); landEdges.push({source:c.id, target:b, len}); }
+  });
+  c.maritime.forEach(b => {
+    if (!countryIds.has(b)) return;
+    const key = [c.id, b].sort().join('||');
+    if (!edgeSet.has(key)) { edgeSet.add(key); maritimeEdges.push({source:c.id, target:b}); }
+  });
+});
+
+const allEdges = [...landEdges, ...maritimeEdges];
+
+const pops = COUNTRIES.map(c => c.pop);
+const gdps = COUNTRIES.map(c => c.gdp);
+const areas = COUNTRIES.map(c => c.area);
+const sqrtMinPop = Math.sqrt(Math.min(...pops));
+const sqrtMaxPop = Math.sqrt(Math.max(...pops));
+const gdpPositive = gdps.filter(g => g > 0);
+const sqrtMinGdp = Math.sqrt(Math.min(...gdpPositive));
+const sqrtMaxGdp = Math.sqrt(Math.max(...gdps));
+const sqrtMinArea = Math.sqrt(Math.min(...areas));
+const sqrtMaxArea = Math.sqrt(Math.max(...areas));
+
+const lens = landEdges.map(e => e.len).filter(l => l > 0);
+const sqrtMinLen = Math.sqrt(Math.min(...lens));
+const sqrtMaxLen = Math.sqrt(Math.max(...lens));
+function edgeWidth(len) {
+  const norm = (Math.sqrt(len) - sqrtMinLen) / (sqrtMaxLen - sqrtMinLen);
+  return 0.3 + Math.pow(norm, 0.6) * 8;
+}
+
+function nodeSize(country) {
+  if (sizeMode === 'pop') {
+    const norm = (Math.sqrt(country.pop) - sqrtMinPop) / (sqrtMaxPop - sqrtMinPop);
+    return 10 + norm * 40;
+  } else if (sizeMode === 'gdp') {
+    const val = Math.max(country.gdp, 0.01);
+    const norm = (Math.sqrt(val) - sqrtMinGdp) / (sqrtMaxGdp - sqrtMinGdp);
+    return 10 + Math.max(0, norm) * 40;
+  } else {
+    const norm = (Math.sqrt(country.area) - sqrtMinArea) / (sqrtMaxArea - sqrtMinArea);
+    return 10 + norm * 40;
+  }
+}
+
+let gameState = { revealed: new Set(), guessedCorrectly: new Set(), failedReveal: new Set(), selectedNode: null, attempts: {}, totalGuesses: 0 };
+
+document.getElementById('total-count').textContent = COUNTRIES.length;
+
+const nodes = new vis.DataSet(COUNTRIES.map(c => ({
+  id: c.id, label: ' ', size: nodeSize(c), shape: 'circularImage', image: flagPieSvg(c.flag, 100),
+  borderWidth: 2, borderWidthSelected: 3,
+  color: { border:'rgba(255,255,255,0.15)', highlight:{border:'#fff'}, hover:{border:'rgba(255,255,255,0.4)'} },
+  font: { color:'transparent', size:0 }
+})));
+
+let edgeId = 0;
+const edgesData = new vis.DataSet([
+  ...landEdges.map(e => ({ id: edgeId++, from:e.source, to:e.target, width:edgeWidth(e.len), color:{color:'rgba(255,255,255,0.1)',highlight:'rgba(255,255,255,0.35)'}, smooth:{type:'continuous'} })),
+  ...maritimeEdges.map(e => ({ id: edgeId++, from:e.source, to:e.target, width:1, dashes:[6,4], color:{color:'rgba(255,255,255,0.07)',highlight:'rgba(255,255,255,0.25)'}, smooth:{type:'continuous'} }))
+]);
+
+const container = document.getElementById('network-container');
+const network = new vis.Network(container, { nodes, edges: edgesData }, {
+  physics: {
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: { gravitationalConstant: -200, centralGravity: 0.005, springLength: 120, springConstant: 0.03, damping: 0.4 },
+    stabilization: { iterations: 3000, updateInterval: 50 }
+  },
+  interaction: { hover: true, tooltipDelay: 300, zoomView: true, dragView: true, dragNodes: true }
+});
+
+network.once('stabilizationIterationsDone', () => { network.setOptions({ physics:{enabled:false} }); });
+
+// Size toggle
+const sizeModes = ['area', 'pop', 'gdp'];
+const sizeLabels = { area: 'Area', pop: 'Population', gdp: 'GDP' };
+document.getElementById('size-toggle').addEventListener('click', () => {
+  sizeMode = sizeModes[(sizeModes.indexOf(sizeMode) + 1) % sizeModes.length];
+  document.getElementById('size-toggle').textContent = 'Size: ' + sizeLabels[sizeMode];
+  document.querySelectorAll('.size-label').forEach(el => el.textContent = sizeLabels[sizeMode]);
+  COUNTRIES.forEach(c => { if (!gameState.revealed.has(c.id)) nodes.update({id:c.id, size:nodeSize(c)}); });
+});
+
+// Name lists
+const sortedNames = COUNTRIES.map(c => c.id).sort((a,b) => a.localeCompare(b));
+const btnHtml = sortedNames.map(n => `<button class="name-btn" data-name="${n}">${n}</button>`).join('');
+
+const sidebarList = document.getElementById('sidebar-list');
+sidebarList.innerHTML = btnHtml;
+const mobileList = document.getElementById('mobile-list');
+mobileList.innerHTML = btnHtml;
+
+function handleNameClick(e) {
+  const btn = e.target.closest('.name-btn');
+  if (!btn || btn.classList.contains('used-correct') || btn.classList.contains('used-failed')) return;
+  submitGuess(btn.dataset.name, btn);
+}
+sidebarList.addEventListener('click', handleNameClick);
+mobileList.addEventListener('click', handleNameClick);
+
+// Search/filter
+function setupFilter(input, list) {
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    list.querySelectorAll('.name-btn').forEach(btn => {
+      if (btn.classList.contains('used-correct') || btn.classList.contains('used-failed')) { btn.classList.add('hidden'); return; }
+      btn.classList.toggle('hidden', q.length > 0 && !btn.dataset.name.toLowerCase().includes(q));
+    });
+  });
+}
+setupFilter(document.getElementById('sidebar-search'), sidebarList);
+const mobileSearch = document.getElementById('mobile-search');
+if (mobileSearch) setupFilter(mobileSearch, mobileList);
+
+// Network click
+network.on('click', (params) => {
+  if (params.nodes.length === 0) { if (isMobile()) gameState.selectedNode=null; else deselectNode(); return; }
+  const nodeId = params.nodes[0];
+  if (gameState.revealed.has(nodeId)) return;
+  selectNode(nodeId);
+});
+
+function selectNode(nodeId) {
+  gameState.selectedNode = nodeId;
+  const country = COUNTRIES.find(c => c.id === nodeId);
+  const landCount = country.borders.filter(b => countryIds.has(b.id)).length;
+  const seaCount = country.maritime.filter(b => countryIds.has(b)).length;
+  const connectedRevealed = getRevealedNeighbours(nodeId);
+  let hintText = `${landCount} border${landCount!==1?'s':''}`;
+  if (seaCount > 0) hintText += `, ${seaCount} maritime`;
+  if (connectedRevealed.length > 0) hintText += ` · near: ${connectedRevealed.join(', ')}`;
+  const attempts = gameState.attempts[nodeId] || 0;
+  const attText = attempts > 0 ? `Attempts: ${attempts}/3` : '';
+
+  if (isMobile()) {
+    document.getElementById('mobile-hint').innerHTML = hintText + (attText ? ` <span class="attempts">${attText}</span>` : '');
+  } else {
+    document.getElementById('guess-hint').textContent = hintText + ' — pick a name';
+    document.getElementById('attempts-display').textContent = attText;
+    document.getElementById('guess-panel').classList.add('visible');
+    document.querySelectorAll('#sidebar-list .name-btn').forEach(btn => {
+      if (!btn.classList.contains('used-correct') && !btn.classList.contains('used-failed')) btn.classList.add('selected-node-active');
+    });
+  }
+}
+
+function deselectNode() {
+  gameState.selectedNode = null;
+  document.getElementById('guess-panel').classList.remove('visible');
+  document.querySelectorAll('#sidebar-list .name-btn').forEach(btn => btn.classList.remove('selected-node-active'));
+}
+
+function getRevealedNeighbours(nodeId) {
+  const n = [];
+  allEdges.forEach(e => {
+    if (e.source === nodeId && gameState.revealed.has(e.target)) n.push(e.target);
+    if (e.target === nodeId && gameState.revealed.has(e.source)) n.push(e.source);
+  });
+  return n;
+}
+
+function submitGuess(guessedName, btn) {
+  const nodeId = gameState.selectedNode;
+  if (!nodeId) return;
+  const country = COUNTRIES.find(c => c.id === nodeId);
+  gameState.totalGuesses++;
+  if (guessedName === country.id) {
+    revealNode(nodeId, true);
+    markUsed(guessedName, 'used-correct');
+    if (isMobile()) gameState.selectedNode=null; else deselectNode();
+  } else {
+    gameState.attempts[nodeId] = (gameState.attempts[nodeId]||0)+1;
+    btn.classList.add('wrong-flash');
+    setTimeout(() => btn.classList.remove('wrong-flash'), 400);
+    if (isMobile()) document.getElementById('mobile-hint').innerHTML = `Attempts: ${gameState.attempts[nodeId]}/3`;
+    else document.getElementById('attempts-display').textContent = `Attempts: ${gameState.attempts[nodeId]}/3`;
+    if (gameState.attempts[nodeId] >= 3) {
+      revealNode(nodeId, false);
+      markUsed(country.id, 'used-failed');
+      if (isMobile()) gameState.selectedNode=null; else deselectNode();
+    }
+  }
+}
+
+function markUsed(name, cls) {
+  document.querySelectorAll(`.name-btn[data-name="${name}"]`).forEach(btn => { btn.classList.add(cls); btn.classList.remove('selected-node-active'); });
+}
+
+function revealNode(nodeId, guessedCorrectly) {
+  gameState.revealed.add(nodeId);
+  if (guessedCorrectly) {
+    gameState.guessedCorrectly.add(nodeId);
+    nodes.update({ id:nodeId, label:nodeId, font:{color:'#fff',size:10,strokeWidth:1,strokeColor:'rgba(0,0,0,0.4)'}, opacity:0.4, borderWidth:1, color:{border:'rgba(255,255,255,0.1)',highlight:{border:'#fff'},hover:{border:'#fff'}} });
+  } else {
+    gameState.failedReveal.add(nodeId);
+    nodes.update({ id:nodeId, label:nodeId, font:{color:'rgba(255,255,255,0.6)',size:9,strokeWidth:1,strokeColor:'rgba(0,0,0,0.3)'}, opacity:0.35, borderWidth:1, color:{border:'rgba(224,122,95,0.4)',highlight:{border:'rgba(224,122,95,0.7)'},hover:{border:'rgba(224,122,95,0.7)'}} });
+  }
+  highlightRemaining();
+  updateScore();
+  checkCompletion();
+}
+
+function highlightRemaining() {
+  const rem = COUNTRIES.filter(c => !gameState.revealed.has(c.id));
+  if (rem.length <= 5 && rem.length > 0) {
+    rem.forEach(c => { nodes.update({ id:c.id, borderWidth:3, color:{border:'#4db8a0',highlight:{border:'#fff'},hover:{border:'#4db8a0'}}, shadow:{enabled:true,color:'rgba(77,184,160,0.4)',size:20} }); });
+  }
+}
+
+function updateScore() {
+  document.getElementById('score').innerHTML = `<span class="guessed">${gameState.guessedCorrectly.size}</span> / <span id="total-count">${COUNTRIES.length}</span> | <span class="revealed">${gameState.failedReveal.size} failed</span>`;
+}
+
+function checkCompletion() {
+  if (gameState.revealed.size === COUNTRIES.length) {
+    document.getElementById('final-score').textContent = `You guessed ${gameState.guessedCorrectly.size} out of ${COUNTRIES.length} countries correctly.`;
+    document.getElementById('final-accuracy').textContent = `Total guesses made: ${gameState.totalGuesses}`;
+    document.getElementById('completion-modal').classList.add('visible');
+  }
+}
+
+document.getElementById('reset-layout-btn').addEventListener('click', () => {
+  network.setOptions({ physics:{ enabled:true, solver:'forceAtlas2Based', forceAtlas2Based:{gravitationalConstant:-200,centralGravity:0.005,springLength:120,springConstant:0.03,damping:0.4}, stabilization:{iterations:1500,updateInterval:50} } });
+  network.stabilize(1500);
+  network.once('stabilizationIterationsDone', () => { network.setOptions({physics:{enabled:false}}); });
+});
+
+document.addEventListener('keydown', (e) => { if (e.key==='Escape') { if(isMobile()) gameState.selectedNode=null; else deselectNode(); } });
+</script>
+</body>
+</html>

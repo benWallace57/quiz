@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breaking Bad Network Quiz</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: rgba(26, 26, 46, 0.9);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+#header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4ecca3;
+  letter-spacing: 0.5px;
+}
+
+#score {
+  font-size: 14px;
+  color: #aaa;
+}
+
+#score .guessed { color: #4ecca3; font-weight: 600; }
+#score .revealed { color: #e07a5f; font-weight: 600; }
+
+#network-container {
+  width: calc(100vw - 220px);
+  height: 100vh;
+}
+
+#name-list {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 220px;
+  height: 100vh;
+  padding: 56px 12px 12px;
+  overflow-y: auto;
+  background: rgba(20, 20, 40, 0.95);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  z-index: 50;
+}
+
+#name-list h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.name-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  color: #ccc;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.name-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.name-btn.selected-node-active {
+  border-color: #4ecca3;
+  background: rgba(78, 204, 163, 0.1);
+}
+
+.name-btn.used-correct {
+  background: rgba(78, 204, 163, 0.15);
+  border-color: rgba(78, 204, 163, 0.4);
+  color: #4ecca3;
+  cursor: default;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.name-btn.used-failed {
+  background: rgba(224, 122, 95, 0.1);
+  border-color: rgba(224, 122, 95, 0.3);
+  color: #e07a5f;
+  cursor: default;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.name-btn.wrong-flash {
+  animation: shake 0.4s ease;
+  border-color: #e07a5f;
+  background: rgba(224, 122, 95, 0.15);
+}
+
+#guess-panel {
+  position: fixed;
+  bottom: 24px;
+  left: calc((100vw - 220px) / 2);
+  transform: translateX(-50%);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: rgba(30, 30, 50, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+#guess-panel.visible {
+  display: flex;
+}
+
+#guess-hint {
+  font-size: 13px;
+  color: #888;
+}
+
+#attempts-display {
+  font-size: 12px;
+  color: #e07a5f;
+}
+
+#completion-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+}
+
+#completion-modal.visible {
+  display: flex;
+}
+
+#completion-content {
+  background: #1e1e3a;
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+#completion-content h2 {
+  color: #4ecca3;
+  margin-bottom: 12px;
+  font-size: 24px;
+}
+
+#completion-content p {
+  color: #ccc;
+  margin-bottom: 8px;
+}
+
+#restart-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  background: #4ecca3;
+  color: #1a1a2e;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(78, 204, 163, 0); }
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Breaking Bad Network Quiz</h1>
+  <div id="score">
+    <span class="guessed">Guessed: 0</span> / 30 &nbsp;|&nbsp;
+    <span class="revealed">Failed: 0</span>
+  </div>
+</div>
+
+<div id="network-container"></div>
+
+<div id="name-list"></div>
+
+<div id="guess-panel">
+  <div id="guess-hint">Click a node, then pick a name from the list</div>
+  <div id="attempts-display"></div>
+</div>
+
+<div id="completion-modal">
+  <div id="completion-content">
+    <h2>Quiz Complete!</h2>
+    <p id="final-score"></p>
+    <p id="final-accuracy"></p>
+    <button id="restart-btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+<script>
+const CHARACTERS = [
+  { id: "Walter", weight: 6528, community: 0, aliases: ["walt", "walter white", "heisenberg", "mr white", "mr. white", "white"] },
+  { id: "Jesse", weight: 4675, community: 6, aliases: ["jesse pinkman", "pinkman", "cap n cook"] },
+  { id: "Hank", weight: 2324, community: 4, aliases: ["hank schrader", "schrader", "asac schrader"] },
+  { id: "Skyler", weight: 1685, community: 7, aliases: ["skyler white", "sky"] },
+  { id: "Mike", weight: 1240, community: 3, aliases: ["mike ehrmantraut", "ehrmantraut"] },
+  { id: "Marie", weight: 778, community: 5, aliases: ["marie schrader"] },
+  { id: "Saul Goodman", weight: 740, community: 7, aliases: ["saul", "jimmy", "jimmy mcgill", "slippin jimmy", "goodman"] },
+  { id: "Tuco Salamanca", weight: 505, community: 2, aliases: ["tuco"] },
+  { id: "Gomez", weight: 415, community: 1, aliases: ["steven gomez", "steve gomez"] },
+  { id: "Jane Margolis", weight: 340, community: 4, aliases: ["jane"] },
+  { id: "Gale Boetticher", weight: 329, community: 3, aliases: ["gale"] },
+  { id: "Jack Welker", weight: 324, community: 1, aliases: ["jack", "uncle jack"] },
+  { id: "Todd Alquist", weight: 323, community: 3, aliases: ["todd", "meth damon"] },
+  { id: "Ted Beneke", weight: 270, community: 7, aliases: ["ted"] },
+  { id: "Badger", weight: 253, community: 4, aliases: ["brandon mayhew"] },
+  { id: "Skinny Pete", weight: 218, community: 4, aliases: ["skinny", "pete"] },
+  { id: "Gus Fring", weight: 300, community: 3, aliases: ["gus", "gustavo", "gustavo fring", "the chicken man", "fring"] },
+  { id: "Victor", weight: 199, community: 5, aliases: [] },
+  { id: "Lydia", weight: 198, community: 3, aliases: ["lydia rodarte-quayle", "lydia rodarte"] },
+  { id: "Walt Jr.", weight: 193, community: 3, aliases: ["flynn", "walter jr", "walter junior", "junior", "walt junior"] },
+  { id: "Andrea Cantillo", weight: 176, community: 5, aliases: ["andrea"] },
+  { id: "Combo", weight: 167, community: 4, aliases: ["christian ortega"] },
+  { id: "Brock", weight: 156, community: 3, aliases: ["brock cantillo"] },
+  { id: "Cousins", weight: 145, community: 2, aliases: ["the cousins", "salamanca cousins", "twins"] },
+  { id: "Huell Babineaux", weight: 142, community: 7, aliases: ["huell"] },
+  { id: "Gretchen", weight: 128, community: 6, aliases: ["gretchen schwartz"] },
+  { id: "Leonel Salamanca", weight: 121, community: 2, aliases: ["leonel"] },
+  { id: "Donald Margolis", weight: 120, community: 0, aliases: ["donald", "jane's dad"] },
+  { id: "Elliott", weight: 115, community: 6, aliases: ["elliott schwartz"] },
+  { id: "Hector Salamanca", weight: 40, community: 2, aliases: ["hector", "tio", "don hector"] }
+];
+
+const EDGES = [
+  { source: "Walter", target: "Jesse", weight: 2185 },
+  { source: "Walter", target: "Skyler", weight: 847 },
+  { source: "Walter", target: "Hank", weight: 708 },
+  { source: "Walter", target: "Mike", weight: 394 },
+  { source: "Walter", target: "Saul Goodman", weight: 265 },
+  { source: "Walter", target: "Tuco Salamanca", weight: 198 },
+  { source: "Walter", target: "Marie", weight: 198 },
+  { source: "Walter", target: "Jack Welker", weight: 161 },
+  { source: "Walter", target: "Gale Boetticher", weight: 115 },
+  { source: "Walter", target: "Todd Alquist", weight: 111 },
+  { source: "Walter", target: "Walt Jr.", weight: 89 },
+  { source: "Walter", target: "Jane Margolis", weight: 74 },
+  { source: "Walter", target: "Gretchen", weight: 69 },
+  { source: "Walter", target: "Ted Beneke", weight: 59 },
+  { source: "Walter", target: "Emilio", weight: 55 },
+  { source: "Walter", target: "Victor", weight: 53 },
+  { source: "Walter", target: "Brock", weight: 53 },
+  { source: "Walter", target: "Elliott", weight: 51 },
+  { source: "Walter", target: "Lydia", weight: 49 },
+  { source: "Walter", target: "Cousins", weight: 47 },
+  { source: "Walter", target: "Gomez", weight: 39 },
+  { source: "Walter", target: "Skinny Pete", weight: 33 },
+  { source: "Walter", target: "Combo", weight: 27 },
+  { source: "Walter", target: "Huell Babineaux", weight: 27 },
+  { source: "Walter", target: "Donald Margolis", weight: 15 },
+  { source: "Walter", target: "Leonel Salamanca", weight: 17 },
+  { source: "Walter", target: "Badger", weight: 11 },
+  { source: "Walter", target: "Hector Salamanca", weight: 5 },
+  { source: "Walter", target: "Gus Fring", weight: 10 },
+  { source: "Walter", target: "Andrea Cantillo", weight: 22 },
+  { source: "Skyler", target: "Marie", weight: 148 },
+  { source: "Skyler", target: "Jesse", weight: 84 },
+  { source: "Skyler", target: "Hank", weight: 151 },
+  { source: "Skyler", target: "Ted Beneke", weight: 139 },
+  { source: "Skyler", target: "Walt Jr.", weight: 33 },
+  { source: "Skyler", target: "Saul Goodman", weight: 53 },
+  { source: "Skyler", target: "Gretchen", weight: 18 },
+  { source: "Skyler", target: "Elliott", weight: 23 },
+  { source: "Skyler", target: "Lydia", weight: 22 },
+  { source: "Skyler", target: "Mike", weight: 10 },
+  { source: "Skyler", target: "Todd Alquist", weight: 11 },
+  { source: "Skyler", target: "Donald Margolis", weight: 10 },
+  { source: "Skyler", target: "Huell Babineaux", weight: 5 },
+  { source: "Hank", target: "Marie", weight: 286 },
+  { source: "Hank", target: "Gomez", weight: 144 },
+  { source: "Hank", target: "Jesse", weight: 249 },
+  { source: "Hank", target: "Tuco Salamanca", weight: 65 },
+  { source: "Hank", target: "Gale Boetticher", weight: 71 },
+  { source: "Hank", target: "Mike", weight: 68 },
+  { source: "Hank", target: "Saul Goodman", weight: 28 },
+  { source: "Hank", target: "Badger", weight: 18 },
+  { source: "Hank", target: "Cousins", weight: 17 },
+  { source: "Hank", target: "Leonel Salamanca", weight: 16 },
+  { source: "Hank", target: "Combo", weight: 12 },
+  { source: "Hank", target: "Jack Welker", weight: 12 },
+  { source: "Hank", target: "Victor", weight: 10 },
+  { source: "Hank", target: "Skinny Pete", weight: 6 },
+  { source: "Hank", target: "Jane Margolis", weight: 15 },
+  { source: "Hank", target: "Walt Jr.", weight: 11 },
+  { source: "Hank", target: "Huell Babineaux", weight: 6 },
+  { source: "Hank", target: "Lydia", weight: 5 },
+  { source: "Hank", target: "Todd Alquist", weight: 5 },
+  { source: "Hank", target: "Hector Salamanca", weight: 5 },
+  { source: "Hank", target: "Gus Fring", weight: 5 },
+  { source: "Marie", target: "Jesse", weight: 41 },
+  { source: "Marie", target: "Gomez", weight: 18 },
+  { source: "Marie", target: "Jane Margolis", weight: 10 },
+  { source: "Marie", target: "Ted Beneke", weight: 10 },
+  { source: "Marie", target: "Victor", weight: 5 },
+  { source: "Marie", target: "Saul Goodman", weight: 5 },
+  { source: "Marie", target: "Gale Boetticher", weight: 6 },
+  { source: "Marie", target: "Andrea Cantillo", weight: 5 },
+  { source: "Gomez", target: "Jesse", weight: 79 },
+  { source: "Gomez", target: "Jack Welker", weight: 5 },
+  { source: "Gomez", target: "Huell Babineaux", weight: 5 },
+  { source: "Gomez", target: "Todd Alquist", weight: 5 },
+  { source: "Gomez", target: "Gus Fring", weight: 6 },
+  { source: "Gomez", target: "Mike", weight: 5 },
+  { source: "Jesse", target: "Combo", weight: 54 },
+  { source: "Jesse", target: "Skinny Pete", weight: 91 },
+  { source: "Jesse", target: "Badger", weight: 69 },
+  { source: "Jesse", target: "Tuco Salamanca", weight: 159 },
+  { source: "Jesse", target: "Jane Margolis", weight: 157 },
+  { source: "Jesse", target: "Saul Goodman", weight: 191 },
+  { source: "Jesse", target: "Mike", weight: 380 },
+  { source: "Jesse", target: "Victor", weight: 38 },
+  { source: "Jesse", target: "Gale Boetticher", weight: 57 },
+  { source: "Jesse", target: "Andrea Cantillo", weight: 84 },
+  { source: "Jesse", target: "Brock", weight: 52 },
+  { source: "Jesse", target: "Jack Welker", weight: 81 },
+  { source: "Jesse", target: "Todd Alquist", weight: 91 },
+  { source: "Jesse", target: "Lydia", weight: 11 },
+  { source: "Jesse", target: "Huell Babineaux", weight: 11 },
+  { source: "Jesse", target: "Gretchen", weight: 5 },
+  { source: "Jesse", target: "Donald Margolis", weight: 21 },
+  { source: "Jesse", target: "Ted Beneke", weight: 25 },
+  { source: "Jesse", target: "Hector Salamanca", weight: 6 },
+  { source: "Jesse", target: "Gus Fring", weight: 6 },
+  { source: "Jesse", target: "Elliott", weight: 5 },
+  { source: "Jesse", target: "Leonel Salamanca", weight: 5 },
+  { source: "Jesse", target: "Walt Jr.", weight: 5 },
+  { source: "Jesse", target: "Cousins", weight: 10 },
+  { source: "Combo", target: "Skinny Pete", weight: 17 },
+  { source: "Combo", target: "Badger", weight: 30 },
+  { source: "Combo", target: "Jane Margolis", weight: 10 },
+  { source: "Combo", target: "Andrea Cantillo", weight: 6 },
+  { source: "Skinny Pete", target: "Badger", weight: 54 },
+  { source: "Skinny Pete", target: "Tuco Salamanca", weight: 12 },
+  { source: "Skinny Pete", target: "Mike", weight: 5 },
+  { source: "Badger", target: "Saul Goodman", weight: 5 },
+  { source: "Badger", target: "Andrea Cantillo", weight: 5 },
+  { source: "Badger", target: "Jane Margolis", weight: 5 },
+  { source: "Badger", target: "Tuco Salamanca", weight: 5 },
+  { source: "Elliott", target: "Gretchen", weight: 36 },
+  { source: "Tuco Salamanca", target: "Hector Salamanca", weight: 6 },
+  { source: "Tuco Salamanca", target: "Cousins", weight: 5 },
+  { source: "Hector Salamanca", target: "Leonel Salamanca", weight: 5 },
+  { source: "Hector Salamanca", target: "Cousins", weight: 6 },
+  { source: "Hector Salamanca", target: "Mike", weight: 6 },
+  { source: "Jane Margolis", target: "Donald Margolis", weight: 59 },
+  { source: "Ted Beneke", target: "Mike", weight: 5 },
+  { source: "Ted Beneke", target: "Saul Goodman", weight: 11 },
+  { source: "Ted Beneke", target: "Huell Babineaux", weight: 5 },
+  { source: "Saul Goodman", target: "Mike", weight: 53 },
+  { source: "Saul Goodman", target: "Huell Babineaux", weight: 24 },
+  { source: "Saul Goodman", target: "Andrea Cantillo", weight: 6 },
+  { source: "Saul Goodman", target: "Jack Welker", weight: 6 },
+  { source: "Mike", target: "Victor", weight: 48 },
+  { source: "Mike", target: "Cousins", weight: 6 },
+  { source: "Mike", target: "Leonel Salamanca", weight: 18 },
+  { source: "Mike", target: "Gale Boetticher", weight: 6 },
+  { source: "Mike", target: "Lydia", weight: 22 },
+  { source: "Mike", target: "Brock", weight: 5 },
+  { source: "Mike", target: "Todd Alquist", weight: 6 },
+  { source: "Mike", target: "Gus Fring", weight: 10 },
+  { source: "Gus Fring", target: "Hector Salamanca", weight: 5 },
+  { source: "Victor", target: "Gale Boetticher", weight: 12 },
+  { source: "Victor", target: "Andrea Cantillo", weight: 6 },
+  { source: "Cousins", target: "Leonel Salamanca", weight: 5 },
+  { source: "Gale Boetticher", target: "Lydia", weight: 5 },
+  { source: "Andrea Cantillo", target: "Brock", weight: 25 },
+  { source: "Andrea Cantillo", target: "Todd Alquist", weight: 6 },
+  { source: "Brock", target: "Huell Babineaux", weight: 6 },
+  { source: "Brock", target: "Todd Alquist", weight: 5 },
+  { source: "Huell Babineaux", target: "Lydia", weight: 5 },
+  { source: "Jack Welker", target: "Todd Alquist", weight: 23 },
+  { source: "Jack Welker", target: "Lydia", weight: 5 },
+  { source: "Lydia", target: "Todd Alquist", weight: 29 },
+  { source: "Todd Alquist", target: "Walt Jr.", weight: 5 },
+  { source: "Walt Jr.", target: "Marie", weight: 12 },
+  { source: "Walt Jr.", target: "Saul Goodman", weight: 12 },
+  { source: "Walt Jr.", target: "Gale Boetticher", weight: 11 },
+  { source: "Walt Jr.", target: "Brock", weight: 5 }
+];
+
+const COMMUNITY_COLORS = {
+  0: { muted: 'rgba(46, 134, 171, 0.6)', bright: '#2E86AB' },
+  1: { muted: 'rgba(27, 67, 50, 0.7)', bright: '#2d8a5e' },
+  2: { muted: 'rgba(230, 57, 70, 0.6)', bright: '#E63946' },
+  3: { muted: 'rgba(244, 162, 97, 0.6)', bright: '#F4A261' },
+  4: { muted: 'rgba(69, 123, 157, 0.6)', bright: '#457B9D' },
+  5: { muted: 'rgba(155, 93, 229, 0.6)', bright: '#9B5DE5' },
+  6: { muted: 'rgba(6, 214, 160, 0.6)', bright: '#06D6A0' },
+  7: { muted: 'rgba(255, 209, 102, 0.6)', bright: '#FFD166' }
+};
+
+const charIds = new Set(CHARACTERS.map(c => c.id));
+const filteredEdges = EDGES.filter(e => charIds.has(e.source) && charIds.has(e.target));
+
+const weights = CHARACTERS.map(c => c.weight);
+const minWeight = Math.min(...weights);
+const maxWeight = Math.max(...weights);
+const sqrtMin = Math.sqrt(minWeight);
+const sqrtMax = Math.sqrt(maxWeight);
+
+const edgeWeights = filteredEdges.map(e => e.weight);
+const minEdge = Math.min(...edgeWeights);
+const maxEdge = Math.max(...edgeWeights);
+const logMin = Math.log(minEdge);
+const logMax = Math.log(maxEdge);
+
+function nodeSize(weight) {
+  const norm = (Math.sqrt(weight) - sqrtMin) / (sqrtMax - sqrtMin);
+  return 12 + norm * 43;
+}
+
+function edgeWidth(weight) {
+  const norm = (Math.log(weight) - logMin) / (logMax - logMin);
+  return 0.5 + norm * 11.5;
+}
+
+let gameState = {
+  revealed: new Set(),
+  guessedCorrectly: new Set(),
+  failedReveal: new Set(),
+  selectedNode: null,
+  attempts: {},
+  totalGuesses: 0
+};
+
+const nodes = new vis.DataSet(CHARACTERS.map(c => ({
+  id: c.id,
+  label: ' ',
+  size: nodeSize(c.weight),
+  color: {
+    background: COMMUNITY_COLORS[c.community].muted,
+    border: 'rgba(255,255,255,0.1)',
+    highlight: { background: COMMUNITY_COLORS[c.community].muted, border: '#fff' },
+    hover: { background: COMMUNITY_COLORS[c.community].muted, border: 'rgba(255,255,255,0.4)' }
+  },
+  font: { color: 'transparent', size: 0 },
+  borderWidth: 2,
+  borderWidthSelected: 3,
+  shape: 'dot'
+})));
+
+const edges = new vis.DataSet(filteredEdges.map((e, i) => ({
+  id: i,
+  from: e.source,
+  to: e.target,
+  width: edgeWidth(e.weight),
+  color: { color: 'rgba(255,255,255,0.12)', highlight: 'rgba(255,255,255,0.4)' },
+  smooth: { type: 'continuous' }
+})));
+
+const container = document.getElementById('network-container');
+const network = new vis.Network(container, { nodes, edges }, {
+  physics: {
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.012,
+      springLength: 120,
+      springConstant: 0.06,
+      damping: 0.4
+    },
+    stabilization: { iterations: 1500, updateInterval: 25 }
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 300,
+    zoomView: true,
+    dragView: true,
+    dragNodes: false
+  }
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: false });
+});
+
+// Build the name list sidebar (shuffled)
+const shuffledNames = CHARACTERS.map(c => c.id).sort((a, b) => a.localeCompare(b));
+const nameListEl = document.getElementById('name-list');
+nameListEl.innerHTML = '<h2>Characters</h2>' + shuffledNames.map(name =>
+  `<button class="name-btn" data-name="${name}">${name}</button>`
+).join('');
+
+nameListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.name-btn');
+  if (!btn || btn.classList.contains('used-correct') || btn.classList.contains('used-failed')) return;
+  const guessedName = btn.dataset.name;
+  submitGuess(guessedName, btn);
+});
+
+network.on('click', (params) => {
+  if (params.nodes.length === 0) {
+    deselectNode();
+    return;
+  }
+  const nodeId = params.nodes[0];
+  if (gameState.revealed.has(nodeId)) return;
+  selectNode(nodeId);
+});
+
+function selectNode(nodeId) {
+  gameState.selectedNode = nodeId;
+  const panel = document.getElementById('guess-panel');
+  const hint = document.getElementById('guess-hint');
+  const attDisplay = document.getElementById('attempts-display');
+
+  const connectedRevealed = getRevealedNeighbours(nodeId);
+  const totalConns = filteredEdges.filter(e => e.source === nodeId || e.target === nodeId).length;
+
+  hint.textContent = `${totalConns} connections` + (connectedRevealed.length > 0 ? ` (linked to: ${connectedRevealed.join(', ')})` : '') + ' — pick a name from the list';
+
+  const attempts = gameState.attempts[nodeId] || 0;
+  attDisplay.textContent = attempts > 0 ? `Attempts: ${attempts}/3` : '';
+
+  panel.classList.add('visible');
+
+  document.querySelectorAll('.name-btn').forEach(btn => {
+    if (!btn.classList.contains('used-correct') && !btn.classList.contains('used-failed')) {
+      btn.classList.add('selected-node-active');
+    }
+  });
+}
+
+function deselectNode() {
+  gameState.selectedNode = null;
+  document.getElementById('guess-panel').classList.remove('visible');
+  document.querySelectorAll('.name-btn').forEach(btn => btn.classList.remove('selected-node-active'));
+}
+
+function getRevealedNeighbours(nodeId) {
+  const neighbours = [];
+  filteredEdges.forEach(e => {
+    if (e.source === nodeId && gameState.revealed.has(e.target)) neighbours.push(e.target);
+    if (e.target === nodeId && gameState.revealed.has(e.source)) neighbours.push(e.source);
+  });
+  return neighbours;
+}
+
+function submitGuess(guessedName, btn) {
+  const nodeId = gameState.selectedNode;
+  if (!nodeId) return;
+
+  const char = CHARACTERS.find(c => c.id === nodeId);
+  gameState.totalGuesses++;
+
+  if (guessedName === char.id) {
+    revealNode(nodeId, true);
+    btn.classList.add('used-correct');
+    btn.classList.remove('selected-node-active');
+    deselectNode();
+  } else {
+    gameState.attempts[nodeId] = (gameState.attempts[nodeId] || 0) + 1;
+    btn.classList.add('wrong-flash');
+    setTimeout(() => btn.classList.remove('wrong-flash'), 400);
+
+    const attDisplay = document.getElementById('attempts-display');
+    attDisplay.textContent = `Attempts: ${gameState.attempts[nodeId]}/3`;
+
+    if (gameState.attempts[nodeId] >= 3) {
+      revealNode(nodeId, false);
+      const correctBtn = nameListEl.querySelector(`[data-name="${char.id}"]`);
+      if (correctBtn) {
+        correctBtn.classList.add('used-failed');
+        correctBtn.classList.remove('selected-node-active');
+      }
+      deselectNode();
+    }
+  }
+}
+
+function revealNode(nodeId, guessedCorrectly) {
+  gameState.revealed.add(nodeId);
+  const char = CHARACTERS.find(c => c.id === nodeId);
+
+  if (guessedCorrectly) {
+    gameState.guessedCorrectly.add(nodeId);
+    nodes.update({
+      id: nodeId,
+      label: char.id,
+      color: {
+        background: COMMUNITY_COLORS[char.community].bright,
+        border: '#fff',
+        highlight: { background: COMMUNITY_COLORS[char.community].bright, border: '#fff' },
+        hover: { background: COMMUNITY_COLORS[char.community].bright, border: '#fff' }
+      },
+      font: { color: '#fff', size: 14, strokeWidth: 3, strokeColor: 'rgba(0,0,0,0.7)' },
+      borderWidth: 3
+    });
+  } else {
+    gameState.failedReveal.add(nodeId);
+    nodes.update({
+      id: nodeId,
+      label: char.id,
+      color: {
+        background: COMMUNITY_COLORS[char.community].muted,
+        border: 'rgba(224, 122, 95, 0.6)',
+        highlight: { background: COMMUNITY_COLORS[char.community].muted, border: 'rgba(224, 122, 95, 0.8)' },
+        hover: { background: COMMUNITY_COLORS[char.community].muted, border: 'rgba(224, 122, 95, 0.8)' }
+      },
+      font: { color: 'rgba(255,255,255,0.5)', size: 12, strokeWidth: 2, strokeColor: 'rgba(0,0,0,0.5)' },
+      borderWidth: 2
+    });
+  }
+
+  updateScore();
+  checkCompletion();
+}
+
+function updateScore() {
+  const scoreEl = document.getElementById('score');
+  scoreEl.innerHTML = `<span class="guessed">Guessed: ${gameState.guessedCorrectly.size}</span> / ${CHARACTERS.length} &nbsp;|&nbsp; <span class="revealed">Failed: ${gameState.failedReveal.size}</span>`;
+}
+
+function checkCompletion() {
+  if (gameState.revealed.size === CHARACTERS.length) {
+    const modal = document.getElementById('completion-modal');
+    document.getElementById('final-score').textContent = `You guessed ${gameState.guessedCorrectly.size} out of ${CHARACTERS.length} characters correctly.`;
+    document.getElementById('final-accuracy').textContent = `Total guesses made: ${gameState.totalGuesses}`;
+    modal.classList.add('visible');
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') deselectNode();
+});
+</script>
+</body>
+</html>

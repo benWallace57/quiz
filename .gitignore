@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+the_breaking_bad_network/
+test.py
+.claude/plans/

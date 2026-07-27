@@ -233,6 +233,77 @@ body {
   cursor: pointer;
 }
 
+#instructions-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+#instructions-overlay.hidden { display: none; }
+
+#instructions-content {
+  background: #161b22;
+  border: 1px solid rgba(240, 199, 94, 0.2);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  width: 100%;
+}
+
+#instructions-content h2 {
+  color: #f0c75e;
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+}
+
+#instructions-content p {
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+#instructions-content ul {
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+#instructions-content li {
+  margin-bottom: 8px;
+}
+
+.instructions-tip {
+  color: #8b949e !important;
+  font-style: italic;
+  font-size: 0.85rem !important;
+}
+
+#start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #f0c75e;
+  color: #0d1117;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#start-btn:hover { background: #f5d47a; }
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-6px); }
@@ -354,6 +425,23 @@ body {
 <div id="mobile-panel">
   <div id="mobile-hint">Tap a node, then pick a name below</div>
   <div id="mobile-list"></div>
+</div>
+
+<!-- Instructions overlay -->
+<div id="instructions-overlay">
+  <div id="instructions-content">
+    <h2>How to Play</h2>
+    <p>Each node in the network is a Harry Potter character. Your job is to figure out who's who using the connections between them.</p>
+    <ul>
+      <li><strong>Click a node</strong> to select it — you'll see how many connections it has and which revealed characters it's linked to.</li>
+      <li><strong>Pick a name</strong> from the sidebar to make your guess.</li>
+      <li>You get <strong>3 attempts</strong> per character. After 3 wrong guesses, the name is revealed.</li>
+      <li>Node <strong>size = importance</strong> (bigger nodes are more central characters).</li>
+      <li>Colours represent <strong>houses</strong> — see the legend in the bottom left.</li>
+    </ul>
+    <p class="instructions-tip">Tip: start with the biggest, most connected nodes — they're the easiest to identify. Use revealed names to figure out their neighbours.</p>
+    <button id="start-btn">Start Quiz</button>
+  </div>
 </div>
 
 <!-- Legacy (hidden on mobile) -->
@@ -874,6 +962,10 @@ document.addEventListener('keydown', (e) => {
     if (isMobile()) { gameState.selectedNode = null; }
     else deselectNode();
   }
+});
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('instructions-overlay').classList.add('hidden');
 });
 </script>
 </body>

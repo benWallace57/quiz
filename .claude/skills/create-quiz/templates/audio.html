@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} Quiz</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e6edf3; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+#header { width: 100%; padding: 20px; text-align: center; border-bottom: 1px solid #30363d; }
+#header h1 { color: {{ACCENT_COLOR}}; font-size: 1.5rem; }
+#score { color: #8b949e; margin-top: 4px; }
+
+#game-area { max-width: 700px; width: 100%; padding: 20px; flex: 1; }
+
+.question-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+.question-card h2 { color: {{ACCENT_COLOR}}; margin-bottom: 12px; font-size: 1.1rem; }
+
+.play-btn { padding: 10px 24px; background: {{ACCENT_COLOR}}; border: none; border-radius: 6px; color: #fff; font-size: 1rem; cursor: pointer; margin-right: 8px; }
+.play-btn:hover { opacity: 0.9; }
+.play-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.guess-input { width: 100%; padding: 10px 14px; margin-top: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 1rem; }
+
+.guess-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.guess-chip { padding: 6px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 16px; font-size: 0.85rem; }
+.guess-chip.correct { background: #1a3d2a; border-color: #2ea043; color: #2ea043; }
+.guess-chip.revealed { background: #3d1a1a; border-color: #da3633; color: #da3633; }
+
+#completion-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 999; }
+#completion-modal.visible { display: flex; }
+#completion-content { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px; text-align: center; }
+#restart-btn { margin-top: 16px; padding: 10px 24px; background: {{ACCENT_COLOR}}; border: none; border-radius: 6px; color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>{{TITLE}}</h1>
+  <div id="score">Question <span id="current-q">1</span> / <span id="total-q">5</span></div>
+</div>
+
+<div id="game-area">
+  <!-- Questions rendered dynamically -->
+</div>
+
+<div id="completion-modal">
+  <div id="completion-content">
+    <h2>Quiz Complete!</h2>
+    <p id="final-score"></p>
+    <button id="restart-btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<script>
+// === DATA ===
+// Replace with actual quiz data
+// Each question has: { id, audioUrl, answers: [{title, artist}], duration }
+const QUESTIONS = [
+  // {{QUESTIONS_PLACEHOLDER}}
+];
+
+const ACCENT_COLOR = '{{ACCENT_COLOR}}';
+
+// === AUDIO ENGINE ===
+let audioCtx = null;
+let currentSource = null;
+let isPlaying = false;
+
+function getAudioContext() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+async function playAudio(url) {
+  const ctx = getAudioContext();
+  if (currentSource) { currentSource.stop(); currentSource = null; }
+  const response = await fetch(url);
+  const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+  currentSource = ctx.createBufferSource();
+  currentSource.buffer = buffer;
+  currentSource.connect(ctx.destination);
+  currentSource.start();
+  isPlaying = true;
+  currentSource.onended = () => { isPlaying = false; };
+}
+
+function stopAudio() {
+  if (currentSource) { currentSource.stop(); currentSource = null; }
+  isPlaying = false;
+}
+
+// === GAME LOGIC ===
+let currentQuestion = 0;
+let score = 0;
+
+function renderQuestion(idx) {
+  const q = QUESTIONS[idx];
+  const area = document.getElementById('game-area');
+  area.innerHTML = `
+    <div class="question-card">
+      <h2>Question ${idx + 1}</h2>
+      <button class="play-btn" onclick="playAudio('${q.audioUrl}')">Play</button>
+      <button class="play-btn" onclick="stopAudio()">Stop</button>
+      <input class="guess-input" placeholder="Type your guess..." onkeydown="if(event.key==='Enter')submitGuess(this.value)">
+      <div class="guess-list" id="guesses"></div>
+    </div>
+  `;
+  document.getElementById('current-q').textContent = idx + 1;
+}
+
+function submitGuess(text) {
+  // Implement fuzzy matching against q.answers
+  const q = QUESTIONS[currentQuestion];
+  const normalized = text.trim().toLowerCase();
+  // Check against answers...
+}
+
+renderQuestion(0);
+</script>
+</body>
+</html>

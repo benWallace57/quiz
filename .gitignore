@@ -3,4 +3,5 @@ __pycache__/
 the_breaking_bad_network/
 test.py
 .claude/plans/
-the_breaking_bad_network/
+pokemon_quiz_data.json
+music_quiz_data.json

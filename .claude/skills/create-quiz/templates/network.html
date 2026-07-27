@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} Quiz</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; overflow: hidden; height: 100vh; }
+
+#header { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; }
+#header h1 { font-size: 1.1rem; color: {{ACCENT_COLOR}}; }
+#score { font-size: 0.9rem; color: #8b949e; }
+#score .guessed { color: {{ACCENT_COLOR}}; font-weight: bold; }
+
+#network-container { width: 100%; height: 100vh; }
+
+#name-list { position: fixed; top: 50px; right: 0; width: 220px; height: calc(100vh - 50px); background: #161b22; border-left: 1px solid #30363d; overflow-y: auto; padding: 10px; z-index: 50; }
+#name-list input { width: 100%; padding: 6px 10px; margin-bottom: 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 0.85rem; }
+.name-btn { display: block; width: 100%; padding: 5px 10px; margin-bottom: 3px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-size: 0.8rem; cursor: pointer; text-align: left; transition: all 0.15s; }
+.name-btn:hover { background: #30363d; border-color: {{ACCENT_COLOR}}; }
+.name-btn.used-correct { background: #1a3d2a; border-color: #2ea043; color: #2ea043; cursor: default; opacity: 0.7; }
+.name-btn.used-failed { background: #3d1a1a; border-color: #da3633; color: #da3633; cursor: default; opacity: 0.5; text-decoration: line-through; }
+
+#guess-panel { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 24px; display: none; align-items: center; gap: 16px; z-index: 100; }
+#guess-panel.visible { display: flex; }
+
+#completion-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 999; }
+#completion-modal.visible { display: flex; }
+#completion-content { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px; text-align: center; }
+#completion-content h2 { color: {{ACCENT_COLOR}}; margin-bottom: 12px; }
+#restart-btn { margin-top: 16px; padding: 10px 24px; background: {{ACCENT_COLOR}}; border: none; border-radius: 6px; color: #fff; font-size: 1rem; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>{{TITLE}}</h1>
+  <div id="score"><span class="guessed">0</span> / <span id="total-count">0</span></div>
+</div>
+
+<div id="network-container"></div>
+
+<div id="name-list">
+  <input type="text" id="sidebar-search" placeholder="Search..." autocomplete="off">
+  <div id="sidebar-list"></div>
+</div>
+
+<div id="guess-panel">
+  <div id="guess-hint">Click a node, then pick a name</div>
+  <div id="attempts-display"></div>
+</div>
+
+<div id="completion-modal">
+  <div id="completion-content">
+    <h2>Quiz Complete!</h2>
+    <p id="final-score"></p>
+    <p id="final-accuracy"></p>
+    <button id="restart-btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+<script>
+// === DATA ===
+// Replace with actual data: array of {id, name, weight, community, aliases[]}
+const NODES_DATA = [
+  // {{NODES_PLACEHOLDER}}
+];
+
+// Replace with actual data: array of {source, target, weight}
+const EDGES_DATA = [
+  // {{EDGES_PLACEHOLDER}}
+];
+
+// === CONFIGURATION ===
+const ACCENT_COLOR = '{{ACCENT_COLOR}}';
+const MAX_ATTEMPTS = 3;
+
+// === GAME STATE ===
+let gameState = {
+  revealed: new Set(),
+  guessedCorrectly: new Set(),
+  failedReveal: new Set(),
+  selectedNode: null,
+  attempts: {},
+  totalGuesses: 0
+};
+
+const totalNodes = NODES_DATA.length;
+document.getElementById('total-count').textContent = totalNodes;
+
+// === BUILD NETWORK ===
+// Size normalization (sqrt scaling)
+const weights = NODES_DATA.map(n => n.weight || 1);
+const sqrtMin = Math.sqrt(Math.min(...weights));
+const sqrtMax = Math.sqrt(Math.max(...weights));
+function nodeSize(w) {
+  const norm = (Math.sqrt(w) - sqrtMin) / (sqrtMax - sqrtMin);
+  return 12 + norm * 36;
+}
+
+const nodeData = NODES_DATA.map(n => ({
+  id: n.id,
+  label: ' ',
+  size: nodeSize(n.weight || 1),
+  color: { background: '#21262d', border: 'rgba(255,255,255,0.15)', highlight: { border: ACCENT_COLOR }, hover: { border: 'rgba(255,255,255,0.4)' } },
+  font: { color: 'transparent', size: 0 },
+  borderWidth: 2
+}));
+
+const edgeData = EDGES_DATA.map(e => ({
+  from: e.source,
+  to: e.target,
+  width: Math.log(e.weight + 1) * 0.8,
+  color: { color: 'rgba(255,255,255,0.06)', hover: 'rgba(255,255,255,0.15)' },
+  smooth: { type: 'continuous' }
+}));
+
+const nodes = new vis.DataSet(nodeData);
+const edges = new vis.DataSet(edgeData);
+
+const network = new vis.Network(document.getElementById('network-container'), { nodes, edges }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 100, springConstant: 0.04, damping: 0.4 },
+    stabilization: { iterations: 2000, updateInterval: 50 }
+  },
+  interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true }
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+// === SIDEBAR ===
+const allNames = NODES_DATA.map(n => ({ id: n.id, name: n.name })).sort((a,b) => a.name.localeCompare(b.name));
+
+function buildSidebar() {
+  const list = document.getElementById('sidebar-list');
+  allNames.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = item.name;
+    btn.dataset.nodeId = item.id;
+    list.appendChild(btn);
+  });
+}
+buildSidebar();
+
+document.getElementById('sidebar-search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.name-btn').forEach(btn => {
+    btn.style.display = btn.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+// === GAME LOGIC ===
+document.getElementById('sidebar-list').addEventListener('click', function(e) {
+  const btn = e.target.closest('.name-btn');
+  if (!btn || btn.classList.contains('used-correct') || btn.classList.contains('used-failed')) return;
+  if (!gameState.selectedNode) return;
+
+  const guessedId = btn.dataset.nodeId;
+  gameState.totalGuesses++;
+
+  if (guessedId === gameState.selectedNode) {
+    revealNode(gameState.selectedNode, true);
+    markUsed(guessedId, true);
+    deselectNode();
+  } else {
+    btn.classList.add('wrong-flash');
+    setTimeout(() => btn.classList.remove('wrong-flash'), 400);
+    if (!gameState.attempts[gameState.selectedNode]) gameState.attempts[gameState.selectedNode] = 0;
+    gameState.attempts[gameState.selectedNode]++;
+    if (gameState.attempts[gameState.selectedNode] >= MAX_ATTEMPTS) {
+      revealNode(gameState.selectedNode, false);
+      deselectNode();
+    } else {
+      updateHint();
+    }
+  }
+});
+
+network.on('click', params => {
+  if (params.nodes.length === 0) { deselectNode(); return; }
+  const nodeId = params.nodes[0];
+  if (gameState.revealed.has(nodeId)) return;
+  selectNode(nodeId);
+});
+
+network.on('dragEnd', params => {
+  if (params.nodes.length > 0) {
+    const nodeId = params.nodes[0];
+    if (!gameState.revealed.has(nodeId)) selectNode(nodeId);
+  }
+});
+
+function selectNode(nodeId) {
+  gameState.selectedNode = nodeId;
+  document.getElementById('guess-panel').classList.add('visible');
+  updateHint();
+}
+
+function deselectNode() {
+  gameState.selectedNode = null;
+  document.getElementById('guess-panel').classList.remove('visible');
+}
+
+function updateHint() {
+  const nodeId = gameState.selectedNode;
+  if (!nodeId) return;
+  const connectedNodes = network.getConnectedNodes(nodeId);
+  const revealedNeighbours = connectedNodes.filter(n => gameState.revealed.has(n));
+  let hints = [`${connectedNodes.length} connections`];
+  if (revealedNeighbours.length > 0) {
+    const names = revealedNeighbours.map(n => nodes.get(n)?.label).filter(l => l && l !== ' ');
+    if (names.length > 0) hints.push('Near: ' + names.join(', '));
+  }
+  const attempts = gameState.attempts[nodeId] || 0;
+  document.getElementById('guess-hint').innerHTML = hints.join(' &middot; ');
+  document.getElementById('attempts-display').textContent = attempts > 0 ? `Attempt ${attempts}/${MAX_ATTEMPTS}` : '';
+}
+
+function revealNode(nodeId, correct) {
+  gameState.revealed.add(nodeId);
+  if (correct) gameState.guessedCorrectly.add(nodeId);
+  else gameState.failedReveal.add(nodeId);
+  const item = NODES_DATA.find(n => n.id === nodeId);
+  const label = item ? item.name : '?';
+  const color = correct ? ACCENT_COLOR : '#e07a5f';
+  nodes.update({ id: nodeId, label, font: { color, size: 11, strokeWidth: 3, strokeColor: '#0d1117' }, opacity: correct ? 0.85 : 0.5 });
+  if (!correct) markUsed(nodeId, false);
+  updateScore();
+  if (gameState.revealed.size >= totalNodes) showCompletion();
+}
+
+function markUsed(nodeId, correct) {
+  document.querySelectorAll(`.name-btn[data-node-id="${nodeId}"]`).forEach(btn => {
+    btn.classList.add(correct ? 'used-correct' : 'used-failed');
+  });
+}
+
+function updateScore() {
+  document.querySelector('#score .guessed').textContent = gameState.guessedCorrectly.size;
+}
+
+function showCompletion() {
+  const g = gameState.guessedCorrectly.size;
+  document.getElementById('final-score').textContent = `${g} / ${totalNodes} correctly guessed`;
+  document.getElementById('final-accuracy').textContent = `Accuracy: ${Math.round((g / gameState.totalGuesses) * 100)}%`;
+  document.getElementById('completion-modal').classList.add('visible');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') deselectNode(); });
+</script>
+</body>
+</html>

@@ -630,6 +630,13 @@ network.on('click', (params) => {
   selectNode(nodeId);
 });
 
+network.on('dragEnd', (params) => {
+  if (params.nodes.length > 0) {
+    const nodeId = params.nodes[0];
+    if (!gameState.revealed.has(nodeId)) selectNode(nodeId);
+  }
+});
+
 function selectNode(nodeId) {
   gameState.selectedNode = nodeId;
   const country = COUNTRIES.find(c => c.id === nodeId);

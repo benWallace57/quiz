@@ -437,6 +437,7 @@ body {
       <li><strong>Pick a name</strong> from the sidebar to make your guess.</li>
       <li>You get <strong>3 attempts</strong> per character. After 3 wrong guesses, the name is revealed.</li>
       <li>Node <strong>size = importance</strong> (bigger nodes are more central characters).</li>
+      <li><strong>Connections</strong> mean two characters share significant scenes together. <strong>Thicker lines</strong> = more shared screen time.</li>
       <li>Colours represent <strong>houses</strong> — see the legend in the bottom left.</li>
     </ul>
     <p class="instructions-tip">Tip: start with the biggest, most connected nodes — they're the easiest to identify. Use revealed names to figure out their neighbours.</p>
@@ -779,6 +780,12 @@ network.on('click', (params) => {
     return;
   }
   handleNodeSelect(params.nodes[0]);
+});
+
+network.on('dragEnd', (params) => {
+  if (params.nodes.length > 0) {
+    handleNodeSelect(params.nodes[0]);
+  }
 });
 
 

@@ -341,9 +341,10 @@ body {
 
 <div id="legend">
   <span class="accent">●</span> Pie chart = sprite colours<br>
-  <span class="accent">■</span> Squares = types<br>
+  <span class="accent">■</span> Squares = types (labelled)<br>
   <span class="accent">→</span> Arrows = evolution<br>
-  Size = base stat total
+  Size = base stat total<br>
+  5 guesses &middot; hints after mistakes
 </div>
 
 <div id="mobile-panel">
@@ -392,6 +393,7 @@ function pieSvg(colors, diameter) {
 
 function isMobile() { return window.innerWidth <= 768; }
 
+
 // Size normalization
 const bsts = POKEMON.map(p => p.bst);
 const sqrtMin = Math.sqrt(Math.min(...bsts));
@@ -402,11 +404,8 @@ function pokemonSize(bst) {
   return 14 + norm * 40;
 }
 
-// Build all names for guessing (Pokemon + Types)
-const allNames = [
-  ...POKEMON.map(p => ({ id: 'p_' + p.id, name: p.name, isType: false })),
-  ...TYPES.map(t => ({ id: 't_' + t, name: t.charAt(0).toUpperCase() + t.slice(1), isType: true }))
-];
+// Build all names for guessing (Pokemon only — types are pre-revealed)
+const allNames = POKEMON.map(p => ({ id: 'p_' + p.id, name: p.name }));
 allNames.sort((a, b) => a.name.localeCompare(b.name));
 
 // Game state
@@ -419,26 +418,27 @@ let gameState = {
   totalGuesses: 0
 };
 
-const totalNodes = POKEMON.length + TYPES.length;
+const totalNodes = POKEMON.length;
 document.getElementById('total-count').textContent = totalNodes;
 
 // Create vis.js nodes
 const nodeData = [];
 
-// Type nodes (squares)
+// Type nodes (squares) — pre-revealed as landmarks
 TYPES.forEach(t => {
+  const label = t.charAt(0).toUpperCase() + t.slice(1);
   nodeData.push({
     id: 't_' + t,
-    label: ' ',
+    label: label,
     shape: 'square',
-    size: 22,
+    size: 26,
     color: {
       background: TYPE_COLORS[t],
-      border: 'rgba(255,255,255,0.2)',
+      border: 'rgba(255,255,255,0.4)',
       highlight: { background: TYPE_COLORS[t], border: '#fff' },
-      hover: { background: TYPE_COLORS[t], border: 'rgba(255,255,255,0.5)' }
+      hover: { background: TYPE_COLORS[t], border: 'rgba(255,255,255,0.7)' }
     },
-    font: { color: 'transparent', size: 0 },
+    font: { color: '#fff', size: 11, strokeWidth: 3, strokeColor: '#0d1117' },
     borderWidth: 2,
     borderWidthSelected: 3
   });
@@ -466,14 +466,16 @@ POKEMON.forEach(p => {
 // Create edges
 const edgeData = [];
 
-// Type edges (Pokemon -> Type)
+// Type edges (Pokemon -> Type) — colored by type for visual clustering
 POKEMON.forEach(p => {
   p.types.forEach(t => {
+    const tc = TYPE_COLORS[t];
+    const r = parseInt(tc.slice(1,3),16), g = parseInt(tc.slice(3,5),16), b = parseInt(tc.slice(5,7),16);
     edgeData.push({
       from: 'p_' + p.id,
       to: 't_' + t,
-      color: { color: 'rgba(255,255,255,0.04)', hover: 'rgba(255,255,255,0.1)' },
-      width: 0.5,
+      color: { color: `rgba(${r},${g},${b},0.15)`, hover: `rgba(${r},${g},${b},0.4)` },
+      width: 1,
       smooth: { type: 'continuous' }
     });
   });
@@ -494,6 +496,9 @@ EVOLUTIONS.forEach(e => {
 
 const nodes = new vis.DataSet(nodeData);
 const edges = new vis.DataSet(edgeData);
+
+// Pre-reveal all type nodes
+TYPES.forEach(t => gameState.revealed.add('t_' + t));
 
 const container = document.getElementById('network-container');
 const network = new vis.Network(container, { nodes, edges }, {
@@ -537,12 +542,9 @@ function buildNameLists() {
 
   allNames.forEach(item => {
     const btn = document.createElement('button');
-    btn.className = 'name-btn' + (item.isType ? ' type-btn' : '');
+    btn.className = 'name-btn';
     btn.textContent = item.name;
     btn.dataset.nodeId = item.id;
-    if (item.isType) {
-      btn.style.borderLeftColor = TYPE_COLORS[item.name.toLowerCase()];
-    }
     sidebarList.appendChild(btn);
 
     const mBtn = btn.cloneNode(true);
@@ -587,7 +589,20 @@ function handleGuess(e) {
     if (!gameState.attempts[gameState.selectedNode]) gameState.attempts[gameState.selectedNode] = 0;
     gameState.attempts[gameState.selectedNode]++;
 
-    if (gameState.attempts[gameState.selectedNode] >= 3) {
+    const nodeId = gameState.selectedNode;
+    const attempts = gameState.attempts[nodeId];
+
+    // Progressive hints
+    if (attempts === 2 && nodeId.startsWith('p_')) {
+      const pokemonId = parseInt(nodeId.replace('p_', ''));
+      nodes.update({ id: nodeId, shape: 'circularImage', image: `sprites/silhouettes/${pokemonId}.png` });
+    }
+    if (attempts === 4 && nodeId.startsWith('p_')) {
+      const pokemonId = parseInt(nodeId.replace('p_', ''));
+      nodes.update({ id: nodeId, shape: 'circularImage', image: `sprites/${pokemonId}.png` });
+    }
+
+    if (attempts >= 5) {
       revealNode(gameState.selectedNode, false);
       deselectNode();
     } else {
@@ -642,7 +657,6 @@ function updateHint() {
   const nodeId = gameState.selectedNode;
   if (!nodeId) return;
 
-  const connectedEdges = network.getConnectedEdges(nodeId);
   const connectedNodes = network.getConnectedNodes(nodeId);
   const revealedNeighbours = connectedNodes.filter(n => gameState.revealed.has(n));
 
@@ -657,15 +671,17 @@ function updateHint() {
     if (names.length > 0) hints.push('Near: ' + names.join(', '));
   }
 
-  // Show if it's a type node (square) or pokemon (circle)
-  const node = nodes.get(nodeId);
-  if (node.shape === 'square') {
-    hints.push('Type node');
+  const attempts = gameState.attempts[nodeId] || 0;
+
+  // Progressive hints for Pokemon nodes
+  if (nodeId.startsWith('p_') && attempts >= 1) {
+    const pokemonId = parseInt(nodeId.replace('p_', ''));
+    const p = POKEMON.find(pk => pk.id === pokemonId);
+    if (p) hints.push(`Starts with: ${p.name[0]}`);
   }
 
-  const attempts = gameState.attempts[nodeId] || 0;
   const hintHtml = hints.join(' &middot; ');
-  const attemptsHtml = attempts > 0 ? `Attempt ${attempts}/3` : '';
+  const attemptsHtml = attempts > 0 ? `Attempt ${attempts}/5` : '';
 
   if (isMobile()) {
     document.getElementById('mobile-hint').innerHTML = hintHtml +
@@ -693,6 +709,12 @@ function revealNode(nodeId, correct) {
     const pokemonId = parseInt(nodeId.replace('p_', ''));
     const p = POKEMON.find(pk => pk.id === pokemonId);
     label = p ? p.name : '?';
+  }
+
+  // Show sprite on reveal for Pokemon nodes
+  if (nodeId.startsWith('p_')) {
+    const pokemonId = parseInt(nodeId.replace('p_', ''));
+    nodes.update({ id: nodeId, shape: 'circularImage', image: `sprites/${pokemonId}.png` });
   }
 
   const color = correct ? '#e85d5d' : '#e07a5f';

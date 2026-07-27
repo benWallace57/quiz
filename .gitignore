@@ -1,7 +1,22 @@
 __pycache__/
 *.pyc
-the_breaking_bad_network/
-test.py
 .claude/plans/
-pokemon_quiz_data.json
+
+# Audio data (keep local, don't push)
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+tools/stems_db/
+tools/vocal_swaps/
+
+# Generated data files
 music_quiz_data.json
+pokemon_quiz_data.json
+tools/music_quiz_data.json
+tools/pokemon_quiz_data.json
+
+# Misc
+tools/the_breaking_bad_network/
+tools/test.py

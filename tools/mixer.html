@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocal Swap Mixer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            background: linear-gradient(135deg, #ff6b9d, #c44dff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .search-panel {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            background: #161b22;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #30363d;
+        }
+        .search-panel label {
+            display: block;
+            font-size: 0.85em;
+            color: #8b949e;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .search-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .search-row input {
+            flex: 1;
+            padding: 10px;
+            background: #0d1117;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .search-row input:focus { outline: none; border-color: #c44dff; }
+        .btn-search {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #1f6feb, #388bfd);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .btn-search:hover { transform: scale(1.03); }
+        .search-results {
+            display: grid;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .search-result {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+        .search-result img {
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+        }
+        .search-result-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .search-result-title {
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .search-result-artist {
+            font-size: 0.8em;
+            color: #8b949e;
+        }
+        .btn-add-song {
+            padding: 6px 14px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-add-song:hover { background: #2ea043; }
+        .btn-add-song:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-add-song.processing { background: #6e40c9; }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto 20px;
+        }
+        .track-select {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #30363d;
+        }
+        .track-select label {
+            display: block;
+            font-size: 0.85em;
+            color: #8b949e;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .track-select select {
+            width: 100%;
+            padding: 10px;
+            background: #0d1117;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .track-select select:focus { outline: none; border-color: #c44dff; }
+        .waveform-container {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            background: #161b22;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #30363d;
+        }
+        .waveform-label {
+            font-size: 0.8em;
+            color: #8b949e;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        canvas {
+            width: 100%;
+            height: 100px;
+            border-radius: 4px;
+            background: #0d1117;
+            cursor: grab;
+        }
+        canvas:active { cursor: grabbing; }
+        canvas.instrumental { cursor: default; }
+        .offset-controls {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            background: #161b22;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #30363d;
+        }
+        .offset-controls label {
+            display: block;
+            font-size: 0.85em;
+            color: #8b949e;
+            margin-bottom: 8px;
+        }
+        .offset-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .offset-row input[type="range"] {
+            flex: 1;
+            accent-color: #c44dff;
+        }
+        .offset-value {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.9em;
+            min-width: 80px;
+            text-align: right;
+            color: #ff6b9d;
+        }
+        .snap-info {
+            font-size: 0.75em;
+            color: #8b949e;
+            margin-top: 6px;
+        }
+        .playback-controls {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+        button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-play {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: white;
+        }
+        .btn-play:hover:not(:disabled) { transform: scale(1.05); }
+        .btn-stop {
+            background: #da3633;
+            color: white;
+        }
+        .btn-stop:hover:not(:disabled) { transform: scale(1.05); }
+        .btn-export {
+            background: linear-gradient(135deg, #c44dff, #ff6b9d);
+            color: white;
+        }
+        .btn-export:hover:not(:disabled) { transform: scale(1.05); }
+        .speed-controls {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            background: #161b22;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #30363d;
+        }
+        .speed-controls .speed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .speed-controls .speed-header label {
+            font-size: 0.85em;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-match {
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #1f6feb, #388bfd);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-match:hover { transform: scale(1.05); }
+        .btn-match:disabled { opacity: 0.4; cursor: not-allowed; }
+        .speed-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .speed-track label {
+            font-size: 0.85em;
+            color: #8b949e;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .speed-row input[type="range"] {
+            flex: 1;
+            accent-color: #c44dff;
+        }
+        .speed-value {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85em;
+            min-width: 50px;
+            text-align: right;
+            color: #ff6b9d;
+        }
+        .bpm-effective {
+            font-size: 0.75em;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+        .gain-controls {
+            max-width: 1000px;
+            margin: 0 auto 20px;
+            background: #161b22;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #30363d;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .gain-controls label {
+            font-size: 0.85em;
+            color: #8b949e;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .gain-controls input[type="range"] {
+            width: 100%;
+            accent-color: #c44dff;
+        }
+        .status {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+            font-size: 0.9em;
+            color: #8b949e;
+            min-height: 1.5em;
+        }
+        .status.error { color: #f85149; }
+        .status.success { color: #3fb950; }
+    </style>
+</head>
+<body>
+    <h1>Vocal Swap Mixer</h1>
+
+    <div class="search-panel">
+        <label>Add Songs to Database</label>
+        <div class="search-row">
+            <input type="text" id="searchInput" placeholder="Search iTunes (e.g. &quot;billie jean&quot;)...">
+            <button class="btn-search" id="btnSearch">Search</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <div class="controls">
+        <div class="track-select">
+            <label>Vocals from</label>
+            <select id="vocalSelect"><option value="">— Load stems database —</option></select>
+        </div>
+        <div class="track-select">
+            <label>Instrumental from</label>
+            <select id="instSelect"><option value="">— Load stems database —</option></select>
+        </div>
+    </div>
+
+    <div class="waveform-container">
+        <div class="waveform-label">
+            <span>Vocals</span>
+            <span id="vocalInfo"></span>
+        </div>
+        <canvas id="vocalCanvas" width="960" height="100"></canvas>
+    </div>
+
+    <div class="waveform-container">
+        <div class="waveform-label">
+            <span>Instrumental</span>
+            <span id="instInfo"></span>
+        </div>
+        <canvas id="instCanvas" class="instrumental" width="960" height="100"></canvas>
+    </div>
+
+    <div class="offset-controls">
+        <label>Vocal Offset</label>
+        <div class="offset-row">
+            <input type="range" id="offsetSlider" min="-5" max="5" step="0.01" value="0">
+            <span class="offset-value" id="offsetDisplay">0.000s</span>
+        </div>
+        <div class="snap-info">Drag waveform or use slider. Hold <kbd>Shift</kbd> for fine control (10ms steps). Release snaps to nearest beat.</div>
+    </div>
+
+    <div class="speed-controls">
+        <div class="speed-header">
+            <label>Playback Speed</label>
+            <button class="btn-match" id="btnMatchBpm" disabled>Match BPM</button>
+        </div>
+        <div class="speed-grid">
+            <div class="speed-track">
+                <label>Vocal Speed: <span class="speed-value" id="vocalSpeedDisplay">1.00x</span></label>
+                <div class="speed-row">
+                    <input type="range" id="vocalSpeed" min="0.5" max="1.5" step="0.01" value="1">
+                </div>
+                <div class="bpm-effective" id="vocalBpmEffective"></div>
+            </div>
+            <div class="speed-track">
+                <label>Instrumental Speed: <span class="speed-value" id="instSpeedDisplay">1.00x</span></label>
+                <div class="speed-row">
+                    <input type="range" id="instSpeed" min="0.5" max="1.5" step="0.01" value="1">
+                </div>
+                <div class="bpm-effective" id="instBpmEffective"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="gain-controls">
+        <div>
+            <label>Vocal Gain: <span id="vocalGainDisplay">75%</span></label>
+            <input type="range" id="vocalGain" min="0" max="150" value="75">
+        </div>
+        <div>
+            <label>Instrumental Gain: <span id="instGainDisplay">85%</span></label>
+            <input type="range" id="instGain" min="0" max="150" value="85">
+        </div>
+    </div>
+
+    <div class="playback-controls">
+        <button class="btn-play" id="btnPlay" disabled>&#9654; Play</button>
+        <button class="btn-stop" id="btnStop" disabled>&#9632; Stop</button>
+        <button class="btn-export" id="btnExport" disabled>&#8615; Export WAV</button>
+    </div>
+
+    <div class="status" id="status">Loading stems database...</div>
+
+    <script>
+    const state = {
+        db: [],
+        vocalBuffer: null,
+        instBuffer: null,
+        vocalEntry: null,
+        instEntry: null,
+        offset: 0,
+        vocalSpeed: 1.0,
+        instSpeed: 1.0,
+        playing: false,
+        audioCtx: null,
+        vocalSource: null,
+        instSource: null,
+        vocalGainNode: null,
+        instGainNode: null,
+        startTime: 0,
+    };
+
+    const vocalSelect = document.getElementById('vocalSelect');
+    const instSelect = document.getElementById('instSelect');
+    const vocalCanvas = document.getElementById('vocalCanvas');
+    const instCanvas = document.getElementById('instCanvas');
+    const offsetSlider = document.getElementById('offsetSlider');
+    const offsetDisplay = document.getElementById('offsetDisplay');
+    const vocalGainSlider = document.getElementById('vocalGain');
+    const instGainSlider = document.getElementById('instGain');
+    const vocalGainDisplay = document.getElementById('vocalGainDisplay');
+    const instGainDisplay = document.getElementById('instGainDisplay');
+    const vocalSpeedSlider = document.getElementById('vocalSpeed');
+    const instSpeedSlider = document.getElementById('instSpeed');
+    const vocalSpeedDisplay = document.getElementById('vocalSpeedDisplay');
+    const instSpeedDisplay = document.getElementById('instSpeedDisplay');
+    const vocalBpmEffective = document.getElementById('vocalBpmEffective');
+    const instBpmEffective = document.getElementById('instBpmEffective');
+    const btnMatchBpm = document.getElementById('btnMatchBpm');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnStop = document.getElementById('btnStop');
+    const btnExport = document.getElementById('btnExport');
+    const statusEl = document.getElementById('status');
+    const vocalInfo = document.getElementById('vocalInfo');
+    const instInfo = document.getElementById('instInfo');
+
+    function setStatus(msg, type = '') {
+        statusEl.textContent = msg;
+        statusEl.className = 'status ' + type;
+    }
+
+    async function loadDatabase() {
+        try {
+            const resp = await fetch('stems_db/database.json');
+            if (!resp.ok) throw new Error('Could not load stems_db/database.json');
+            state.db = await resp.json();
+            populateSelects();
+            setStatus(`Loaded ${state.db.length} song(s). Select vocals and instrumental to begin.`);
+        } catch (e) {
+            setStatus('No stems database found. Run: python3 vocal_swap_tool.py add "song name"', 'error');
+        }
+    }
+
+    function populateSelects() {
+        const makeOptions = (select) => {
+            select.innerHTML = '<option value="">— Select —</option>';
+            state.db.forEach(entry => {
+                const opt = document.createElement('option');
+                opt.value = entry.id;
+                opt.textContent = `${entry.artist} — ${entry.name} (${entry.bpm} BPM)`;
+                select.appendChild(opt);
+            });
+        };
+        makeOptions(vocalSelect);
+        makeOptions(instSelect);
+    }
+
+    function getAudioContext() {
+        if (!state.audioCtx) {
+            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return state.audioCtx;
+    }
+
+    async function loadAudio(path) {
+        const resp = await fetch(path);
+        const arrayBuffer = await resp.arrayBuffer();
+        return getAudioContext().decodeAudioData(arrayBuffer);
+    }
+
+    function drawWaveform(canvas, buffer, beats, offset, color) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        if (!buffer) return;
+
+        const data = buffer.getChannelData(0);
+        const duration = buffer.duration;
+        const samplesPerPixel = Math.floor(data.length / w);
+
+        // Draw waveform
+        ctx.fillStyle = color;
+        for (let x = 0; x < w; x++) {
+            const start = x * samplesPerPixel;
+            let min = 0, max = 0;
+            for (let i = start; i < start + samplesPerPixel && i < data.length; i++) {
+                if (data[i] < min) min = data[i];
+                if (data[i] > max) max = data[i];
+            }
+            const yMin = ((1 + min) * h) / 2;
+            const yMax = ((1 + max) * h) / 2;
+            ctx.fillRect(x, yMax, 1, yMin - yMax || 1);
+        }
+
+        // Draw beat markers
+        if (beats && beats.length > 0) {
+            ctx.strokeStyle = 'rgba(255, 107, 157, 0.4)';
+            ctx.lineWidth = 1;
+            beats.forEach(beatTime => {
+                const adjustedTime = beatTime + (offset || 0);
+                if (adjustedTime < 0 || adjustedTime > duration) return;
+                const x = (adjustedTime / duration) * w;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            });
+        }
+
+        // Draw offset indicator line (start position)
+        if (offset && offset !== 0) {
+            const offsetX = Math.max(0, (offset / duration) * w);
+            ctx.strokeStyle = '#c44dff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(offsetX, 0);
+            ctx.lineTo(offsetX, h);
+            ctx.stroke();
+        }
+    }
+
+    function redrawWaveforms() {
+        const vocalColor = 'rgba(196, 77, 255, 0.7)';
+        const instColor = 'rgba(46, 160, 67, 0.7)';
+
+        drawWaveform(vocalCanvas, state.vocalBuffer,
+            state.vocalEntry ? state.vocalEntry.beats : [], state.offset, vocalColor);
+        drawWaveform(instCanvas, state.instBuffer,
+            state.instEntry ? state.instEntry.beats : [], 0, instColor);
+    }
+
+    function snapToNearestBeat(time) {
+        if (!state.instEntry || !state.instEntry.beats.length) return time;
+        const beats = state.instEntry.beats;
+        let closest = beats[0];
+        let minDist = Math.abs(time - beats[0]);
+        for (let i = 1; i < beats.length; i++) {
+            const dist = Math.abs(time - beats[i]);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = beats[i];
+            }
+            // Also check negative beats
+            const negDist = Math.abs(time + beats[i]);
+            if (negDist < minDist) {
+                minDist = negDist;
+                closest = -beats[i];
+            }
+        }
+        if (minDist < 0.1) return closest;
+        return time;
+    }
+
+    function updateOffset(value, snap = true) {
+        state.offset = snap ? snapToNearestBeat(value) : value;
+        offsetSlider.value = state.offset;
+        offsetDisplay.textContent = state.offset.toFixed(3) + 's';
+        redrawWaveforms();
+    }
+
+    async function onTrackSelect(type) {
+        const selectEl = type === 'vocal' ? vocalSelect : instSelect;
+        const id = selectEl.value;
+        if (!id) return;
+
+        const entry = state.db.find(e => e.id === id);
+        if (!entry) return;
+
+        setStatus(`Loading ${entry.name}...`);
+        try {
+            const buffer = await loadAudio(`stems_db/${id}/${type === 'vocal' ? 'vocals' : 'instrumental'}.wav`);
+            if (type === 'vocal') {
+                state.vocalBuffer = buffer;
+                state.vocalEntry = entry;
+                vocalInfo.textContent = `${entry.bpm} BPM | ${entry.duration}s`;
+            } else {
+                state.instBuffer = buffer;
+                state.instEntry = entry;
+                instInfo.textContent = `${entry.bpm} BPM | ${entry.duration}s`;
+            }
+            redrawWaveforms();
+            updateButtons();
+            setStatus('Ready. Adjust offset and press Play.', 'success');
+        } catch (e) {
+            setStatus(`Failed to load: ${e.message}`, 'error');
+        }
+    }
+
+    function updateButtons() {
+        const ready = state.vocalBuffer && state.instBuffer;
+        btnPlay.disabled = !ready;
+        btnExport.disabled = !ready;
+        btnMatchBpm.disabled = !(state.vocalEntry && state.instEntry);
+        updateSpeedDisplay();
+    }
+
+    function stopPlayback() {
+        if (state.vocalSource) { try { state.vocalSource.stop(); } catch(e) {} }
+        if (state.instSource) { try { state.instSource.stop(); } catch(e) {} }
+        state.vocalSource = null;
+        state.instSource = null;
+        state.playing = false;
+        btnStop.disabled = true;
+        btnPlay.disabled = !(state.vocalBuffer && state.instBuffer);
+    }
+
+    function startPlayback() {
+        if (!state.vocalBuffer || !state.instBuffer) return;
+        stopPlayback();
+
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        state.vocalGainNode = ctx.createGain();
+        state.instGainNode = ctx.createGain();
+        state.vocalGainNode.gain.value = vocalGainSlider.value / 100;
+        state.instGainNode.gain.value = instGainSlider.value / 100;
+
+        state.vocalSource = ctx.createBufferSource();
+        state.vocalSource.buffer = state.vocalBuffer;
+        state.vocalSource.playbackRate.value = state.vocalSpeed;
+        state.vocalSource.connect(state.vocalGainNode).connect(ctx.destination);
+
+        state.instSource = ctx.createBufferSource();
+        state.instSource.buffer = state.instBuffer;
+        state.instSource.playbackRate.value = state.instSpeed;
+        state.instSource.connect(state.instGainNode).connect(ctx.destination);
+
+        const offset = state.offset;
+        const now = ctx.currentTime;
+
+        if (offset >= 0) {
+            state.instSource.start(now);
+            state.vocalSource.start(now, offset);
+        } else {
+            state.vocalSource.start(now);
+            state.instSource.start(now, -offset);
+        }
+
+        state.playing = true;
+        state.startTime = now;
+        btnStop.disabled = false;
+        btnPlay.disabled = true;
+
+        const maxDuration = Math.max(
+            (state.vocalBuffer.duration - Math.max(0, offset)) / state.vocalSpeed,
+            (state.instBuffer.duration - Math.max(0, -offset)) / state.instSpeed
+        );
+        setTimeout(() => { if (state.playing) stopPlayback(); }, maxDuration * 1000 + 100);
+    }
+
+    async function exportMix() {
+        if (!state.vocalBuffer || !state.instBuffer) return;
+        setStatus('Exporting...');
+
+        const offset = state.offset;
+        const vocalStart = Math.max(0, offset);
+        const instStart = Math.max(0, -offset);
+        const vocalDuration = (state.vocalBuffer.duration - vocalStart) / state.vocalSpeed;
+        const instDuration = (state.instBuffer.duration - instStart) / state.instSpeed;
+        const totalDuration = Math.max(vocalDuration, instDuration);
+        const sampleRate = state.vocalBuffer.sampleRate;
+        const length = Math.ceil(totalDuration * sampleRate);
+
+        const offlineCtx = new OfflineAudioContext(2, length, sampleRate);
+
+        const vocalGain = offlineCtx.createGain();
+        vocalGain.gain.value = vocalGainSlider.value / 100;
+        const instGain = offlineCtx.createGain();
+        instGain.gain.value = instGainSlider.value / 100;
+
+        const vSrc = offlineCtx.createBufferSource();
+        vSrc.buffer = state.vocalBuffer;
+        vSrc.playbackRate.value = state.vocalSpeed;
+        vSrc.connect(vocalGain).connect(offlineCtx.destination);
+
+        const iSrc = offlineCtx.createBufferSource();
+        iSrc.buffer = state.instBuffer;
+        iSrc.playbackRate.value = state.instSpeed;
+        iSrc.connect(instGain).connect(offlineCtx.destination);
+
+        if (offset >= 0) {
+            iSrc.start(0);
+            vSrc.start(0, offset);
+        } else {
+            vSrc.start(0);
+            iSrc.start(0, -offset);
+        }
+
+        const renderedBuffer = await offlineCtx.startRendering();
+
+        // Encode as WAV
+        const wavBlob = audioBufferToWav(renderedBuffer);
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        const vName = state.vocalEntry ? state.vocalEntry.artist : 'vocal';
+        const iName = state.instEntry ? state.instEntry.artist : 'inst';
+        a.download = `${vName}_over_${iName}_offset${offset.toFixed(2)}s.wav`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatus('Exported!', 'success');
+    }
+
+    function audioBufferToWav(buffer) {
+        const numChannels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const format = 1; // PCM
+        const bitDepth = 16;
+        const bytesPerSample = bitDepth / 8;
+        const blockAlign = numChannels * bytesPerSample;
+
+        const samples = buffer.length;
+        const dataSize = samples * blockAlign;
+        const headerSize = 44;
+        const arrayBuffer = new ArrayBuffer(headerSize + dataSize);
+        const view = new DataView(arrayBuffer);
+
+        function writeString(offset, str) {
+            for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+        }
+
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + dataSize, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, format, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * blockAlign, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitDepth, true);
+        writeString(36, 'data');
+        view.setUint32(40, dataSize, true);
+
+        const channels = [];
+        for (let ch = 0; ch < numChannels; ch++) channels.push(buffer.getChannelData(ch));
+
+        let pos = 44;
+        for (let i = 0; i < samples; i++) {
+            for (let ch = 0; ch < numChannels; ch++) {
+                let sample = Math.max(-1, Math.min(1, channels[ch][i]));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+        }
+
+        return new Blob([arrayBuffer], { type: 'audio/wav' });
+    }
+
+    // Drag-to-offset on vocal waveform
+    let dragging = false;
+    let dragStartX = 0;
+    let dragStartOffset = 0;
+
+    vocalCanvas.addEventListener('mousedown', (e) => {
+        if (!state.vocalBuffer) return;
+        dragging = true;
+        dragStartX = e.clientX;
+        dragStartOffset = state.offset;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!dragging || !state.vocalBuffer) return;
+        const dx = e.clientX - dragStartX;
+        const pxPerSec = vocalCanvas.width / state.vocalBuffer.duration;
+        const deltaSec = dx / pxPerSec;
+        const newOffset = dragStartOffset + deltaSec;
+        const snap = !e.shiftKey;
+        updateOffset(Math.max(-5, Math.min(5, newOffset)), snap);
+    });
+
+    document.addEventListener('mouseup', () => { dragging = false; });
+
+    // Event listeners
+    vocalSelect.addEventListener('change', () => onTrackSelect('vocal'));
+    instSelect.addEventListener('change', () => onTrackSelect('inst'));
+
+    offsetSlider.addEventListener('input', (e) => {
+        updateOffset(parseFloat(e.target.value), !e.shiftKey);
+    });
+
+    vocalGainSlider.addEventListener('input', () => {
+        vocalGainDisplay.textContent = vocalGainSlider.value + '%';
+        if (state.vocalGainNode) state.vocalGainNode.gain.value = vocalGainSlider.value / 100;
+    });
+
+    instGainSlider.addEventListener('input', () => {
+        instGainDisplay.textContent = instGainSlider.value + '%';
+        if (state.instGainNode) state.instGainNode.gain.value = instGainSlider.value / 100;
+    });
+
+    function updateSpeedDisplay() {
+        vocalSpeedDisplay.textContent = state.vocalSpeed.toFixed(2) + 'x';
+        instSpeedDisplay.textContent = state.instSpeed.toFixed(2) + 'x';
+        if (state.vocalEntry) {
+            const effectiveBpm = (state.vocalEntry.bpm * state.vocalSpeed).toFixed(1);
+            vocalBpmEffective.textContent = `Effective: ${effectiveBpm} BPM`;
+        }
+        if (state.instEntry) {
+            const effectiveBpm = (state.instEntry.bpm * state.instSpeed).toFixed(1);
+            instBpmEffective.textContent = `Effective: ${effectiveBpm} BPM`;
+        }
+    }
+
+    function matchBpm() {
+        if (!state.vocalEntry || !state.instEntry) return;
+        const ratio = state.instEntry.bpm / state.vocalEntry.bpm;
+        state.vocalSpeed = Math.max(0.5, Math.min(1.5, ratio));
+        state.instSpeed = 1.0;
+        vocalSpeedSlider.value = state.vocalSpeed;
+        instSpeedSlider.value = state.instSpeed;
+        updateSpeedDisplay();
+        setStatus(`Matched: vocals sped ${ratio > 1 ? 'up' : 'down'} to ${(state.vocalEntry.bpm * state.vocalSpeed).toFixed(1)} BPM`, 'success');
+    }
+
+    vocalSpeedSlider.addEventListener('input', () => {
+        state.vocalSpeed = parseFloat(vocalSpeedSlider.value);
+        updateSpeedDisplay();
+    });
+
+    instSpeedSlider.addEventListener('input', () => {
+        state.instSpeed = parseFloat(instSpeedSlider.value);
+        updateSpeedDisplay();
+    });
+
+    btnMatchBpm.addEventListener('click', matchBpm);
+    btnPlay.addEventListener('click', startPlayback);
+    btnStop.addEventListener('click', stopPlayback);
+    btnExport.addEventListener('click', exportMix);
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    const btnSearch = document.getElementById('btnSearch');
+    const searchResults = document.getElementById('searchResults');
+
+    async function doSearch() {
+        const query = searchInput.value.trim();
+        if (!query) return;
+        searchResults.innerHTML = '<div style="color:#8b949e;padding:8px;">Searching...</div>';
+        try {
+            const resp = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const results = await resp.json();
+            if (!results.length) {
+                searchResults.innerHTML = '<div style="color:#8b949e;padding:8px;">No results found.</div>';
+                return;
+            }
+            searchResults.innerHTML = results.map((r, i) => `
+                <div class="search-result">
+                    ${r.artworkUrl ? `<img src="${r.artworkUrl}" alt="">` : ''}
+                    <div class="search-result-info">
+                        <div class="search-result-title">${r.trackName}</div>
+                        <div class="search-result-artist">${r.artistName}</div>
+                    </div>
+                    <button class="btn-add-song" data-idx="${i}" ${r.previewUrl ? '' : 'disabled'}>
+                        ${r.previewUrl ? '+ Add' : 'No preview'}
+                    </button>
+                </div>
+            `).join('');
+
+            searchResults.querySelectorAll('.btn-add-song').forEach(btn => {
+                btn.addEventListener('click', () => addSong(results[btn.dataset.idx], btn));
+            });
+        } catch (e) {
+            searchResults.innerHTML = '<div style="color:#f85149;padding:8px;">Search failed — is the server running? (python3 vocal_swap_tool.py serve)</div>';
+        }
+    }
+
+    async function addSong(result, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        btn.classList.add('processing');
+
+        try {
+            const resp = await fetch('/api/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    trackName: result.trackName,
+                    artistName: result.artistName,
+                    previewUrl: result.previewUrl,
+                }),
+            });
+            const data = await resp.json();
+
+            if (data.status === 'exists') {
+                btn.textContent = 'Already added';
+                return;
+            }
+
+            pollStatus(data.id, btn);
+        } catch (e) {
+            btn.textContent = 'Error';
+            btn.classList.remove('processing');
+        }
+    }
+
+    function pollStatus(songId, btn) {
+        const interval = setInterval(async () => {
+            try {
+                const resp = await fetch(`/api/status?id=${encodeURIComponent(songId)}`);
+                const data = await resp.json();
+                if (data.status === 'done') {
+                    clearInterval(interval);
+                    btn.textContent = 'Added!';
+                    btn.classList.remove('processing');
+                    btn.style.background = '#238636';
+                    loadDatabase();
+                } else if (data.status.startsWith('error')) {
+                    clearInterval(interval);
+                    btn.textContent = 'Failed';
+                    btn.classList.remove('processing');
+                    btn.style.background = '#da3633';
+                } else {
+                    btn.textContent = data.status + '...';
+                }
+            } catch (e) {
+                clearInterval(interval);
+                btn.textContent = 'Error';
+            }
+        }, 2000);
+    }
+
+    btnSearch.addEventListener('click', doSearch);
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+    // Init
+    loadDatabase();
+    </script>
+</body>
+</html>

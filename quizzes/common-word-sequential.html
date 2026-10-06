@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Common Word Music Quiz — Sequential</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #58a6ff, #bc8cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .question-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .question-card.example {
+            border-color: #58a6ff;
+            border-width: 2px;
+        }
+        .question-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .question-number {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #58a6ff;
+            min-width: 80px;
+        }
+        .question-card.example .question-number {
+            color: #f0883e;
+        }
+        .play-all-btn {
+            background: #238636;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+        .play-all-btn:hover { background: #2ea043; }
+        .play-all-btn.playing {
+            background: #da3633;
+        }
+        .play-all-btn.playing:hover { background: #f85149; }
+        .stop-btn {
+            background: #30363d;
+            color: #e6edf3;
+            border: 1px solid #484f58;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .stop-btn:hover { background: #484f58; }
+        .answer-area {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .answer-badge {
+            background: #30363d;
+            border: 1px solid #484f58;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .answer-badge:hover { background: #484f58; }
+        .answer-badge.revealed {
+            background: #238636;
+            border-color: #238636;
+            color: #fff;
+        }
+        .tracks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .track-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 10px 14px;
+            flex-wrap: wrap;
+            transition: border-color 0.2s, background 0.2s;
+            border: 2px solid transparent;
+        }
+        .track-row.active-track {
+            border-color: #58a6ff;
+            background: #0d1520;
+        }
+        .track-play-btn {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            width: 40px;
+            height: 40px;
+            font-size: 1em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .track-play-btn:hover { background: #30363d; border-color: #58a6ff; }
+        .track-play-btn.playing {
+            background: #1a3a5c;
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+        .track-info {
+            flex: 1;
+            min-width: 200px;
+        }
+        .track-info.hidden .track-title,
+        .track-info.hidden .track-artist {
+            color: transparent;
+            background: #21262d;
+            border-radius: 4px;
+            user-select: none;
+            display: inline-block;
+        }
+        .track-title {
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        .track-artist {
+            color: #8b949e;
+            font-size: 0.85em;
+        }
+        .offset-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .offset-btn {
+            background: #21262d;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .offset-btn:hover { background: #30363d; color: #e6edf3; }
+        .offset-display {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 0.85em;
+            font-family: monospace;
+            min-width: 80px;
+            text-align: center;
+            color: #58a6ff;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: #21262d;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #58a6ff;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .master-controls {
+            max-width: 900px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+        }
+        .master-controls label {
+            color: #8b949e;
+            font-size: 0.9em;
+        }
+        .duration-input {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #e6edf3;
+            padding: 4px 8px;
+            width: 60px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+        .version-links {
+            max-width: 900px;
+            margin: 0 auto 16px;
+            text-align: center;
+        }
+        .version-links a {
+            color: #58a6ff;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .version-links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Common Word Music Quiz</h1>
+    <p class="subtitle">Song clips interleave round-robin — what word do all their titles share?</p>
+
+    <div class="version-links">
+        <a href="common-word.html">Switch to simultaneous mode (harder)</a>
+    </div>
+
+    <div class="master-controls">
+        <label>Rounds:</label>
+        <input type="number" class="duration-input" id="numRounds" value="3" min="1" max="10" step="1">
+        <label>Segment length:</label>
+        <input type="number" class="duration-input" id="segLength" value="1.5" min="0.5" max="5" step="0.5">
+        <label>s</label>
+        <button class="stop-btn" style="margin-left:auto" onclick="exportOffsets()">Export Offsets</button>
+    </div>
+    <pre id="exportOutput" style="display:none;max-width:900px;margin:0 auto 16px;padding:12px 16px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:0.85em;white-space:pre-wrap;cursor:pointer;" onclick="navigator.clipboard.writeText(this.textContent);this.style.borderColor='#238636';setTimeout(()=>this.style.borderColor='#30363d',1000)"></pre>
+
+    <div id="questions"></div>
+
+    <script>
+    const QUESTIONS = [
+        {
+            id: 'example',
+            label: 'Example',
+            answer: 'SOMEBODY',
+            tracks: [
+                {
+                    title: 'Somebody That I Used to Know',
+                    artist: 'Gotye',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4a/63/85/4a6385ef-b80a-5e40-0bf2-245fa5b3dc52/mzaf_1146936378720252898.plus.aac.p.m4a',
+                    offset: 2
+                },
+                {
+                    title: 'Somebody to Love',
+                    artist: 'Queen',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/12/89/15/1289150d-048b-b30e-cab6-ecb4fe325ef2/mzaf_17979701771623315329.plus.aac.p.m4a',
+                    offset: 16
+                },
+                {
+                    title: 'Somebody Told Me',
+                    artist: 'The Killers',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/63/87/bc/6387bc94-49fa-5511-43f4-ed6ee8fe0b4d/mzaf_13833190007925520351.plus.aac.p.m4a',
+                    offset: 5
+                }
+            ]
+        },
+        {
+            id: 'q1',
+            label: 'Q1',
+            answer: 'BRIDGE',
+            tracks: [
+                {
+                    title: 'Water Under the Bridge',
+                    artist: 'Adele',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ae/71/36/ae7136f1-3ca0-135c-cff1-1356d1fd1403/mzaf_15524745611386956421.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Under the Bridge',
+                    artist: 'Red Hot Chili Peppers',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ff/5e/6c/ff5e6c34-4b2c-fa5b-232c-194183e5310f/mzaf_18293543166089220451.plus.aac.p.m4a',
+                    offset: 5
+                },
+                {
+                    title: 'Bridge Over Troubled Water',
+                    artist: 'Simon & Garfunkel',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e7/9b/60/e79b60c4-4971-aed9-92aa-db57d453cd42/mzaf_12057489393656620288.plus.aac.p.m4a',
+                    offset: 0
+                }
+            ]
+        },
+        {
+            id: 'q2',
+            label: 'Q2',
+            answer: 'QUEEN',
+            tracks: [
+                {
+                    title: 'Dancing Queen',
+                    artist: 'ABBA',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ec/b1/63/ecb163bc-aff2-4dd2-d40b-c044f0b9fa4d/mzaf_4358783485405794088.plus.aac.p.m4a',
+                    offset: 15
+                },
+                {
+                    title: 'Killer Queen',
+                    artist: 'Queen',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/16/35/49/16354974-a9d7-913e-4da2-2e8864842eda/mzaf_6140236367815796807.plus.aac.p.m4a',
+                    offset: 10
+                },
+                {
+                    title: 'God Save the Queen',
+                    artist: 'Sex Pistols',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f6/37/bf/f637bf47-0813-8aa1-291f-2d014a76de0d/mzaf_6911297877186262108.plus.aac.p.m4a',
+                    offset: 18
+                }
+            ]
+        },
+        {
+            id: 'q3',
+            label: 'Q3',
+            answer: 'WORLD',
+            tracks: [
+                {
+                    title: 'Other Side of the World',
+                    artist: 'KT Tunstall',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/09/e2/d2/09e2d22e-95ab-0512-b7f5-d6bdd6ddd608/mzaf_5893900067570353833.plus.aac.p.m4a',
+                    offset: 24
+                },
+                {
+                    title: 'Around the World',
+                    artist: 'Daft Punk',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/1a/0d/dc/1a0ddc60-0cb0-5481-abd1-b1b1d8b92c7a/mzaf_14895857175025523567.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Everybody Wants to Rule the World',
+                    artist: 'Tears for Fears',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ed/23/1f/ed231f7c-78cb-3b4d-f312-fc6b7ec09063/mzaf_14579022326895349191.plus.aac.p.m4a',
+                    offset: 0
+                }
+            ]
+        },
+        {
+            id: 'q4',
+            label: 'Q4',
+            answer: 'GOOD',
+            tracks: [
+                {
+                    title: 'good 4 u',
+                    artist: 'Olivia Rodrigo',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9f/bd/f1/9fbdf1ce-12d9-7440-1c1c-3fed40567619/mzaf_7303839465958373073.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Good Luck, Babe!',
+                    artist: 'Chappell Roan',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c3/6d/4f/c36d4f23-b87f-046d-7a0e-e3e05d180b2a/mzaf_17235999651335214399.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Back for Good',
+                    artist: 'Take That',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d1/f0/a4/d1f0a415-bc65-bf43-e22b-94ff62def290/mzaf_16883089681912706882.plus.aac.p.m4a',
+                    offset: 0
+                }
+            ]
+        },
+        {
+            id: 'q5',
+            label: 'Q5',
+            answer: 'NEW',
+            tracks: [
+                {
+                    title: 'New York, New York',
+                    artist: 'Frank Sinatra',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c3/eb/c2/c3ebc24c-87be-dfb9-5ec1-cd1b0ab0a16f/mzaf_5082436954140784103.plus.aac.p.m4a',
+                    offset: 5
+                },
+                {
+                    title: 'Fairytale of New York',
+                    artist: 'The Pogues',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/58/d5/88/58d58813-cf30-bb76-ceaf-f85c78189d1e/mzaf_13617788067195172291.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'New Shoes',
+                    artist: 'Paolo Nutini',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/37/11/ea/3711ea82-f5ad-907a-eb63-ea38b52c402a/mzaf_5775318372762961913.plus.aac.p.m4a',
+                    offset: 2
+                }
+            ]
+        },
+        {
+            id: 'q6',
+            label: 'Q6',
+            answer: 'ALL',
+            tracks: [
+                {
+                    title: 'All Too Well (Taylor\'s Version)',
+                    artist: 'Taylor Swift',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/98/45/5e/98455e46-746d-c879-c610-48322068929b/mzaf_12082529185475484305.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'All of Me',
+                    artist: 'John Legend',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ff/94/6c/ff946ca7-e49a-fdf8-ea5b-11e6f56a0417/mzaf_17369156110722174773.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'All By Myself',
+                    artist: 'Celine Dion',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/47/b8/7b47b82d-9088-7aff-3be3-a49f95f14e06/mzaf_12518453064666966775.plus.aac.p.m4a',
+                    offset: 0
+                }
+            ]
+        },
+        {
+            id: 'q7',
+            label: 'Q7',
+            answer: 'ME',
+            tracks: [
+                {
+                    title: 'Take On Me',
+                    artist: 'a-ha',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f2/03/4f/f2034f41-707f-7111-bc63-e5d3cf7f2240/mzaf_17215043934336702540.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Take a Chance on Me',
+                    artist: 'ABBA',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ef/c3/3a/efc33a8d-c12e-c023-704f-764f1104efef/mzaf_15425013859318708889.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Call Me Maybe',
+                    artist: 'Carly Rae Jepsen',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5e/0b/c4/5e0bc4b4-51fb-c992-4953-8cc13ecfb773/mzaf_4904797060238555261.plus.aac.p.m4a',
+                    offset: 0
+                }
+            ]
+        },
+        {
+            id: 'q8',
+            label: 'Q8',
+            answer: 'UP',
+            tracks: [
+                {
+                    title: 'Shut Up',
+                    artist: 'Stormzy',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/21/55/a3/2155a305-c766-6ac1-5c58-b8f566168c52/mzaf_9043363403867811638.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Shut Up and Dance',
+                    artist: 'Walk the Moon',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/fa/37/b0/fa37b02c-cccc-7ccb-3161-39a5f4c2d4e8/mzaf_1832266719592545746.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Up&Up',
+                    artist: 'Coldplay',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/fc/28/55/fc2855ce-14a5-9285-422d-cf14f38437af/mzaf_1784441503316041555.plus.aac.p.m4a',
+                    offset: 26
+                }
+            ]
+        },
+        {
+            id: 'q9',
+            label: 'Q9',
+            answer: 'MOONLIGHT',
+            tracks: [
+                {
+                    title: 'Dancing in the Moonlight',
+                    artist: 'Toploader',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/db/fc/4e/dbfc4ef5-e2d9-2be0-09c1-53a707b3cd18/mzaf_8832220488161219064.plus.aac.p.m4a',
+                    offset: 15
+                },
+                {
+                    title: 'Dancing in the Moonlight',
+                    artist: 'Thin Lizzy',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/28/21/12/282112a3-48e7-527a-2fc6-8eb498cb1be4/mzaf_10384815703008430471.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Moonlight Sonata',
+                    artist: 'Beethoven',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/40/bf/e7/40bfe72a-6592-caab-31de-3d5fea51e2b9/mzaf_9147001542907458010.plus.aac.p.m4a',
+                    offset: 25
+                }
+            ]
+        },
+        {
+            id: 'q10',
+            label: 'Q10',
+            answer: 'STAR',
+            tracks: [
+                {
+                    title: 'Star Wars Main Theme',
+                    artist: 'John Williams',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/19/58/1b/19581b06-c502-9b98-d099-1d06665199a1/mzaf_15760062900320214876.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'The Star Spangled Banner',
+                    artist: 'Whitney Houston',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0e/96/98/0e9698c1-b369-c865-6390-8f973ece72d1/mzaf_17581865774905166897.plus.aac.p.m4a',
+                    offset: 0
+                },
+                {
+                    title: 'Star Girl',
+                    artist: 'McFly',
+                    url: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/02/a6/ac/02a6ac6c-58c4-df9b-01e8-9d4920dc8cf4/mzaf_2110689119625894447.plus.aac.p.m4a',
+                    offset: 0
+                }
+            ]
+        }
+    ];
+
+    const state = {
+        audioElements: {},
+        playTimers: {},
+        progressIntervals: {},
+        playing: new Set(),
+        sequenceAbort: null
+    };
+
+    function getNumRounds() {
+        return parseInt(document.getElementById('numRounds').value) || 3;
+    }
+
+    function getSegLength() {
+        return parseFloat(document.getElementById('segLength').value) || 1.5;
+    }
+
+    function clearActiveTrackHighlights() {
+        document.querySelectorAll('.track-row.active-track').forEach(el => el.classList.remove('active-track'));
+    }
+
+    function stopAll() {
+        if (state.sequenceAbort) {
+            state.sequenceAbort.aborted = true;
+            state.sequenceAbort = null;
+        }
+        for (const key of state.playing) {
+            const audio = state.audioElements[key];
+            if (audio) audio.pause();
+        }
+        for (const key in state.playTimers) {
+            clearTimeout(state.playTimers[key]);
+        }
+        for (const key in state.progressIntervals) {
+            clearInterval(state.progressIntervals[key]);
+        }
+        state.playing.clear();
+        state.playTimers = {};
+        state.progressIntervals = {};
+        document.querySelectorAll('.playing').forEach(el => el.classList.remove('playing'));
+        document.querySelectorAll('.progress-bar').forEach(el => el.style.width = '0%');
+        clearActiveTrackHighlights();
+    }
+
+    function playSegment(questionId, trackIdx, startTime, duration, onDone) {
+        const key = `${questionId}_${trackIdx}`;
+        const audio = state.audioElements[key];
+        if (!audio) { if (onDone) onDone(); return; }
+
+        audio.currentTime = startTime;
+        audio.play().catch(() => {});
+
+        state.playing.add(key);
+
+        const btn = document.querySelector(`[data-track-key="${key}"]`);
+        if (btn) btn.classList.add('playing');
+
+        const row = document.querySelector(`[data-row-key="${key}"]`);
+        if (row) row.classList.add('active-track');
+
+        const progressBar = document.querySelector(`[data-progress-key="${key}"]`);
+
+        if (state.playTimers[key]) clearTimeout(state.playTimers[key]);
+        if (state.progressIntervals[key]) clearInterval(state.progressIntervals[key]);
+
+        const wallStart = Date.now();
+        state.progressIntervals[key] = setInterval(() => {
+            const elapsed = (Date.now() - wallStart) / 1000;
+            const pct = Math.min(100, (elapsed / duration) * 100);
+            if (progressBar) progressBar.style.width = pct + '%';
+        }, 50);
+
+        state.playTimers[key] = setTimeout(() => {
+            audio.pause();
+            state.playing.delete(key);
+            if (btn) btn.classList.remove('playing');
+            if (row) row.classList.remove('active-track');
+            clearInterval(state.progressIntervals[key]);
+            if (progressBar) progressBar.style.width = '0%';
+            if (onDone) onDone();
+        }, duration * 1000);
+    }
+
+    function playTrack(questionId, trackIdx) {
+        stopAll();
+        const q = QUESTIONS.find(q => q.id === questionId);
+        const track = q.tracks[trackIdx];
+        const segLen = getSegLength();
+        const rounds = getNumRounds();
+        playSegment(questionId, trackIdx, track.offset, segLen * rounds);
+    }
+
+    function playSequence(questionId) {
+        const q = QUESTIONS.find(q => q.id === questionId);
+        if (!q) return;
+
+        const allBtn = document.querySelector(`[data-play-all="${questionId}"]`);
+        const isPlaying = allBtn && allBtn.classList.contains('playing');
+
+        stopAll();
+
+        if (isPlaying) return;
+
+        if (allBtn) allBtn.classList.add('playing');
+
+        const segLen = getSegLength();
+        const rounds = getNumRounds();
+
+        const abort = { aborted: false };
+        state.sequenceAbort = abort;
+
+        const steps = [];
+        for (let r = 0; r < rounds; r++) {
+            for (let t = 0; t < q.tracks.length; t++) {
+                steps.push({
+                    trackIdx: t,
+                    audioStart: q.tracks[t].offset + r * segLen
+                });
+            }
+        }
+
+        let stepIndex = 0;
+
+        function playNext() {
+            if (abort.aborted || stepIndex >= steps.length) {
+                if (allBtn) allBtn.classList.remove('playing');
+                return;
+            }
+            const step = steps[stepIndex++];
+            playSegment(questionId, step.trackIdx, step.audioStart, segLen, playNext);
+        }
+
+        playNext();
+    }
+
+    function adjustOffset(questionId, trackIdx, delta) {
+        const q = QUESTIONS.find(q => q.id === questionId);
+        const track = q.tracks[trackIdx];
+        track.offset = Math.max(0, Math.min(29, track.offset + delta));
+        const display = document.querySelector(`[data-offset-key="${questionId}_${trackIdx}"]`);
+        if (display) display.textContent = track.offset.toFixed(1) + 's';
+    }
+
+    function exportOffsets() {
+        const lines = QUESTIONS.map(q => {
+            const offsets = q.tracks.map((t, i) => `${t.artist}: ${t.offset}`);
+            return `${q.label} (${q.answer}): ${offsets.join(', ')}`;
+        });
+        const el = document.getElementById('exportOutput');
+        el.textContent = lines.join('\n');
+        el.style.display = 'block';
+        navigator.clipboard.writeText(el.textContent).catch(() => {});
+    }
+
+    function toggleAnswer(questionId) {
+        const badge = document.querySelector(`[data-answer="${questionId}"]`);
+        if (badge) {
+            badge.classList.toggle('revealed');
+            const q = QUESTIONS.find(q => q.id === questionId);
+            badge.textContent = badge.classList.contains('revealed') ? q.answer : 'Show Answer';
+            for (let i = 0; i < q.tracks.length; i++) {
+                const info = document.querySelector(`[data-info-key="${questionId}_${i}"]`);
+                if (info) info.classList.toggle('hidden', !badge.classList.contains('revealed'));
+            }
+        }
+    }
+
+    function render() {
+        const container = document.getElementById('questions');
+        container.innerHTML = '';
+
+        for (const q of QUESTIONS) {
+            const card = document.createElement('div');
+            card.className = 'question-card' + (q.id === 'example' ? ' example' : '');
+
+            card.innerHTML = `
+                <div class="question-header">
+                    <span class="question-number">${q.label}</span>
+                    <button class="play-all-btn" data-play-all="${q.id}" onclick="playSequence('${q.id}')">
+                        &#9654; Play Sequence
+                    </button>
+                    <button class="stop-btn" onclick="stopAll()">&#9632; Stop</button>
+                    <div class="answer-area">
+                        <span class="answer-badge" data-answer="${q.id}" onclick="toggleAnswer('${q.id}')">Show Answer</span>
+                    </div>
+                </div>
+                <div class="tracks-container">
+                    ${q.tracks.map((t, i) => `
+                        <div class="track-row" data-row-key="${q.id}_${i}">
+                            <button class="track-play-btn" data-track-key="${q.id}_${i}"
+                                onclick="playTrack('${q.id}', ${i})">
+                                &#9654;${i + 1}
+                            </button>
+                            <div class="track-info hidden" data-info-key="${q.id}_${i}">
+                                <div class="track-title">${t.title}</div>
+                                <div class="track-artist">${t.artist}</div>
+                            </div>
+                            <div class="offset-controls">
+                                <button class="offset-btn" onclick="adjustOffset('${q.id}', ${i}, -5)">-5</button>
+                                <button class="offset-btn" onclick="adjustOffset('${q.id}', ${i}, -1)">-1</button>
+                                <span class="offset-display" data-offset-key="${q.id}_${i}">${t.offset.toFixed(1)}s</span>
+                                <button class="offset-btn" onclick="adjustOffset('${q.id}', ${i}, 1)">+1</button>
+                                <button class="offset-btn" onclick="adjustOffset('${q.id}', ${i}, 5)">+5</button>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" data-progress-key="${q.id}_${i}"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            container.appendChild(card);
+
+            for (let i = 0; i < q.tracks.length; i++) {
+                const key = `${q.id}_${i}`;
+                const audio = new Audio();
+                audio.crossOrigin = 'anonymous';
+                audio.preload = 'auto';
+                audio.src = q.tracks[i].url;
+                state.audioElements[key] = audio;
+            }
+        }
+    }
+
+    render();
+    </script>
+</body>
+</html>

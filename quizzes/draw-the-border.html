@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Draw the Border</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0d1117;
+  color: #e6e6e6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+#header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 52px; background: #161b22; border-bottom: 1px solid #30363d;
+  display: flex; align-items: center; padding: 0 16px; z-index: 100;
+}
+#header h1 { font-size: 18px; font-weight: 600; color: #4ecca3; }
+#score-display {
+  margin-left: auto; font-size: 14px; color: #8b949e;
+}
+#score-display span { color: #4ecca3; font-weight: 600; }
+#prompt-bar {
+  position: fixed; top: 52px; left: 0; right: 0;
+  height: 44px; background: #1c2128; border-bottom: 1px solid #30363d;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 16px; z-index: 99;
+}
+#prompt-text { font-size: 15px; color: #c9d1d9; }
+#prompt-text strong { color: #ffd166; }
+#canvas-container {
+  position: fixed; top: 96px; left: 0; bottom: 0;
+  right: 200px; background: #0d1117;
+}
+#canvas-container canvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+#map-canvas { z-index: 1; }
+#draw-canvas { z-index: 2; cursor: crosshair; touch-action: none; }
+#controls {
+  position: fixed; top: 96px; right: 0; bottom: 0; width: 200px;
+  background: #161b22; border-left: 1px solid #30363d;
+  padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  z-index: 100;
+}
+#controls label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+#controls select {
+  width: 100%; padding: 8px; background: #21262d; border: 1px solid #30363d;
+  color: #c9d1d9; border-radius: 6px; font-size: 13px;
+}
+.btn {
+  padding: 10px 16px; border: none; border-radius: 6px;
+  font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+}
+.btn-primary { background: #4ecca3; color: #0d1117; }
+.btn-primary:hover { background: #3dbb92; }
+.btn-primary:disabled { background: #2a5040; color: #4a6a5a; cursor: not-allowed; }
+.btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+.btn-secondary:hover { background: #30363d; }
+.btn-small { padding: 6px 12px; font-size: 12px; }
+.toggle-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: #21262d; border: 1px solid #30363d;
+  border-radius: 6px; cursor: pointer; font-size: 13px; color: #8b949e;
+}
+.toggle-btn.active { border-color: #4ecca3; color: #4ecca3; }
+.toggle-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: #30363d; }
+.toggle-btn.active .dot { background: #4ecca3; }
+#btn-row { display: flex; gap: 8px; }
+#btn-row .btn { flex: 1; }
+#progress-bar {
+  height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; margin-top: auto;
+}
+#progress-fill { height: 100%; background: #4ecca3; transition: width 0.3s; }
+#round-label { font-size: 12px; color: #8b949e; text-align: center; }
+#score-popup {
+  position: fixed; top: 50%; left: calc(50% - 100px);
+  transform: translate(-50%, -50%);
+  background: #1c2128; border: 2px solid #4ecca3; border-radius: 16px;
+  padding: 32px 40px; text-align: center; z-index: 200;
+  display: none; min-width: 280px; max-width: 440px;
+}
+#score-popup h2 { font-size: 48px; color: #4ecca3; margin-bottom: 4px; }
+#score-popup .grade { font-size: 20px; color: #ffd166; margin-bottom: 12px; }
+#score-popup .detail { font-size: 14px; color: #8b949e; margin-bottom: 16px; }
+#displaced-message {
+  font-size: 13px; color: #c9d1d9; background: #21262d;
+  border-radius: 8px; padding: 12px; margin-bottom: 16px;
+  text-align: left; line-height: 1.5;
+}
+#displaced-message .city-name { color: #ffd166; font-weight: 600; }
+#displaced-message .funny { color: #8b949e; font-style: italic; }
+#completion-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: none; align-items: center; justify-content: center; z-index: 300;
+}
+#completion-content {
+  background: #1c2128; border: 1px solid #30363d; border-radius: 16px;
+  padding: 40px; text-align: center; max-width: 420px;
+}
+#completion-content h2 { font-size: 28px; color: #4ecca3; margin-bottom: 8px; }
+#completion-content .final-score { font-size: 64px; color: #ffd166; font-weight: 700; margin: 16px 0; }
+#completion-content .stats { font-size: 14px; color: #8b949e; margin-bottom: 24px; line-height: 1.8; }
+#loading {
+  position: fixed; inset: 0; background: #0d1117;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px; z-index: 400;
+}
+#loading .spinner {
+  width: 40px; height: 40px; border: 3px solid #21262d;
+  border-top-color: #4ecca3; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 768px) {
+  #canvas-container { right: 0; bottom: 60px; }
+  #controls {
+    top: auto; bottom: 0; left: 0; right: 0; width: 100%; height: 60px;
+    flex-direction: row; align-items: center; padding: 8px 12px;
+    overflow-x: auto;
+  }
+  #controls label { display: none; }
+  #controls select { width: auto; min-width: 100px; }
+  #progress-bar { display: none; }
+  #round-label { display: none; }
+  .toggle-btn span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="color:#8b949e;font-size:14px;">Loading map data...</div>
+</div>
+
+<div id="header">
+  <h1>Draw the Border</h1>
+  <div id="score-display">Round <span id="current-round">1</span>/<span id="total-rounds">10</span> &nbsp;|&nbsp; Score: <span id="total-score">0</span></div>
+</div>
+
+<div id="prompt-bar">
+  <div id="prompt-text">Draw the border between <strong id="country-a-name">—</strong> and <strong id="country-b-name">—</strong></div>
+</div>
+
+<div id="canvas-container">
+  <canvas id="map-canvas"></canvas>
+  <canvas id="draw-canvas"></canvas>
+</div>
+
+<div id="controls">
+  <label>Region</label>
+  <select id="region-select">
+    <option value="europe">Europe</option>
+    <option value="world">World</option>
+    <option value="americas">Americas</option>
+    <option value="asia">Asia</option>
+    <option value="africa">Africa</option>
+  </select>
+  <div class="toggle-btn" id="cities-toggle">
+    <div class="dot"></div>
+    <span>Cities</span>
+  </div>
+  <div id="btn-row">
+    <button class="btn btn-secondary btn-small" id="btn-undo">Undo</button>
+    <button class="btn btn-secondary btn-small" id="btn-clear">Clear</button>
+  </div>
+  <button class="btn btn-primary" id="btn-submit" disabled>Submit</button>
+  <button class="btn btn-primary" id="btn-next" style="display:none">Next →</button>
+  <div id="round-label">Round 1 of 10</div>
+  <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<div id="score-popup">
+  <h2 id="popup-score">85</h2>
+  <div class="grade" id="popup-grade">A — Excellent!</div>
+  <div class="detail" id="popup-detail"></div>
+  <div id="displaced-message" style="display:none"></div>
+</div>
+
+<div id="completion-modal">
+  <div id="completion-content">
+    <h2>Quiz Complete!</h2>
+    <div class="final-score" id="final-score">0</div>
+    <div class="stats" id="final-stats"></div>
+    <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3-array@3/dist/d3-array.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-geo@3/dist/d3-geo.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+
+const COUNTRY_IDS = {
+  "Afghanistan":4,"Albania":8,"Algeria":12,"Angola":24,"Argentina":32,"Armenia":51,
+  "Australia":36,"Austria":40,"Azerbaijan":31,"Bangladesh":50,"Belarus":112,"Belgium":56,
+  "Benin":204,"Bhutan":64,"Bolivia":68,"Bosnia and Herz.":70,"Botswana":72,"Brazil":76,
+  "Brunei":96,"Bulgaria":100,"Burkina Faso":854,"Burundi":108,"Cambodia":116,"Cameroon":120,
+  "Canada":124,"Central African Rep.":140,"Chad":148,"Chile":152,"China":156,"Colombia":170,
+  "Congo":178,"Costa Rica":188,"Croatia":191,"Cuba":192,"Czechia":203,"Dem. Rep. Congo":180,
+  "Denmark":208,"Djibouti":262,"Dominican Rep.":214,"Ecuador":218,"Egypt":818,"El Salvador":222,
+  "Eq. Guinea":226,"Eritrea":232,"Estonia":233,"eSwatini":748,"Ethiopia":231,"Finland":246,
+  "France":250,"Gabon":266,"Gambia":270,"Georgia":268,"Germany":276,"Ghana":288,
+  "Greece":300,"Guatemala":320,"Guinea":324,"Guinea-Bissau":624,"Guyana":328,"Haiti":332,
+  "Honduras":340,"Hungary":348,"India":356,"Indonesia":360,"Iran":364,"Iraq":368,
+  "Ireland":372,"Israel":376,"Italy":380,"Ivory Coast":384,"Japan":392,"Jordan":400,
+  "Kazakhstan":398,"Kenya":404,"Kosovo":-99,"Kuwait":414,"Kyrgyzstan":417,"Laos":418,
+  "Latvia":428,"Lebanon":422,"Lesotho":426,"Liberia":430,"Libya":434,"Lithuania":440,
+  "Luxembourg":442,"Madagascar":450,"Malawi":454,"Malaysia":458,"Mali":466,"Mauritania":478,
+  "Mexico":484,"Moldova":498,"Mongolia":496,"Montenegro":499,"Morocco":504,"Mozambique":508,
+  "Myanmar":104,"Namibia":516,"Nepal":524,"Netherlands":528,"New Zealand":554,"Nicaragua":558,
+  "Niger":562,"Nigeria":566,"North Korea":408,"North Macedonia":807,"Norway":578,"Oman":512,
+  "Pakistan":586,"Palestine":275,"Panama":591,"Papua New Guinea":598,"Paraguay":600,"Peru":604,
+  "Philippines":608,"Poland":616,"Portugal":620,"Qatar":634,"Romania":642,"Russia":643,
+  "Rwanda":646,"Saudi Arabia":682,"Senegal":686,"Serbia":688,"Sierra Leone":694,
+  "Slovakia":703,"Slovenia":705,"Somalia":706,"South Africa":710,"South Korea":410,
+  "South Sudan":728,"Spain":724,"Sri Lanka":144,"Sudan":736,"Suriname":740,"Sweden":752,
+  "Switzerland":756,"Syria":760,"Taiwan":158,"Tajikistan":762,"Tanzania":834,"Thailand":764,
+  "Togo":768,"Trinidad and Tobago":780,"Tunisia":788,"Turkey":792,"Turkmenistan":795,
+  "Uganda":800,"Ukraine":804,"United Arab Emirates":784,"United Kingdom":826,
+  "United States of America":840,"Uruguay":858,"Uzbekistan":860,"Venezuela":862,
+  "Vietnam":704,"Yemen":887,"Zambia":894,"Zimbabwe":716
+};
+
+const BORDER_PAIRS = [
+  {a:"France",b:"Spain",difficulty:1,region:"europe"},
+  {a:"France",b:"Germany",difficulty:2,region:"europe"},
+  {a:"France",b:"Italy",difficulty:2,region:"europe"},
+  {a:"France",b:"Switzerland",difficulty:2,region:"europe"},
+  {a:"France",b:"Belgium",difficulty:2,region:"europe"},
+  {a:"Germany",b:"Poland",difficulty:2,region:"europe"},
+  {a:"Germany",b:"Czechia",difficulty:2,region:"europe"},
+  {a:"Germany",b:"Austria",difficulty:2,region:"europe"},
+  {a:"Germany",b:"Netherlands",difficulty:3,region:"europe"},
+  {a:"Germany",b:"Denmark",difficulty:3,region:"europe"},
+  {a:"Germany",b:"Switzerland",difficulty:2,region:"europe"},
+  {a:"Italy",b:"Switzerland",difficulty:2,region:"europe"},
+  {a:"Italy",b:"Austria",difficulty:3,region:"europe"},
+  {a:"Spain",b:"Portugal",difficulty:1,region:"europe"},
+  {a:"Norway",b:"Sweden",difficulty:1,region:"europe"},
+  {a:"Norway",b:"Finland",difficulty:2,region:"europe"},
+  {a:"Sweden",b:"Finland",difficulty:2,region:"europe"},
+  {a:"Poland",b:"Ukraine",difficulty:2,region:"europe"},
+  {a:"Poland",b:"Czechia",difficulty:2,region:"europe"},
+  {a:"Poland",b:"Slovakia",difficulty:3,region:"europe"},
+  {a:"Romania",b:"Hungary",difficulty:2,region:"europe"},
+  {a:"Romania",b:"Bulgaria",difficulty:2,region:"europe"},
+  {a:"Romania",b:"Ukraine",difficulty:2,region:"europe"},
+  {a:"Romania",b:"Moldova",difficulty:3,region:"europe"},
+  {a:"Austria",b:"Hungary",difficulty:2,region:"europe"},
+  {a:"Austria",b:"Czechia",difficulty:3,region:"europe"},
+  {a:"Greece",b:"Turkey",difficulty:2,region:"europe"},
+  {a:"Greece",b:"Bulgaria",difficulty:3,region:"europe"},
+  {a:"Serbia",b:"Croatia",difficulty:2,region:"europe"},
+  {a:"Serbia",b:"Romania",difficulty:3,region:"europe"},
+  {a:"Hungary",b:"Slovakia",difficulty:3,region:"europe"},
+  {a:"Bosnia and Herz.",b:"Croatia",difficulty:2,region:"europe"},
+  {a:"Finland",b:"Russia",difficulty:1,region:"europe"},
+  {a:"Estonia",b:"Latvia",difficulty:3,region:"europe"},
+  {a:"Latvia",b:"Lithuania",difficulty:3,region:"europe"},
+  {a:"Ukraine",b:"Russia",difficulty:1,region:"europe"},
+  {a:"Belarus",b:"Poland",difficulty:2,region:"europe"},
+  {a:"United States of America",b:"Mexico",difficulty:1,region:"americas"},
+  {a:"United States of America",b:"Canada",difficulty:1,region:"americas"},
+  {a:"Brazil",b:"Argentina",difficulty:1,region:"americas"},
+  {a:"Brazil",b:"Colombia",difficulty:2,region:"americas"},
+  {a:"Brazil",b:"Peru",difficulty:2,region:"americas"},
+  {a:"Brazil",b:"Bolivia",difficulty:2,region:"americas"},
+  {a:"Brazil",b:"Paraguay",difficulty:3,region:"americas"},
+  {a:"Brazil",b:"Uruguay",difficulty:3,region:"americas"},
+  {a:"Argentina",b:"Chile",difficulty:1,region:"americas"},
+  {a:"Colombia",b:"Venezuela",difficulty:2,region:"americas"},
+  {a:"Colombia",b:"Ecuador",difficulty:3,region:"americas"},
+  {a:"Peru",b:"Bolivia",difficulty:2,region:"americas"},
+  {a:"Peru",b:"Chile",difficulty:2,region:"americas"},
+  {a:"Peru",b:"Ecuador",difficulty:3,region:"americas"},
+  {a:"Guatemala",b:"Mexico",difficulty:2,region:"americas"},
+  {a:"Honduras",b:"Guatemala",difficulty:3,region:"americas"},
+  {a:"Costa Rica",b:"Panama",difficulty:3,region:"americas"},
+  {a:"Nicaragua",b:"Honduras",difficulty:3,region:"americas"},
+  {a:"China",b:"India",difficulty:1,region:"asia"},
+  {a:"China",b:"Russia",difficulty:1,region:"asia"},
+  {a:"China",b:"Mongolia",difficulty:2,region:"asia"},
+  {a:"China",b:"Myanmar",difficulty:2,region:"asia"},
+  {a:"China",b:"Vietnam",difficulty:3,region:"asia"},
+  {a:"China",b:"Kazakhstan",difficulty:2,region:"asia"},
+  {a:"China",b:"North Korea",difficulty:3,region:"asia"},
+  {a:"India",b:"Pakistan",difficulty:1,region:"asia"},
+  {a:"India",b:"Nepal",difficulty:2,region:"asia"},
+  {a:"India",b:"Bangladesh",difficulty:2,region:"asia"},
+  {a:"India",b:"Myanmar",difficulty:3,region:"asia"},
+  {a:"Thailand",b:"Myanmar",difficulty:2,region:"asia"},
+  {a:"Thailand",b:"Laos",difficulty:2,region:"asia"},
+  {a:"Thailand",b:"Cambodia",difficulty:3,region:"asia"},
+  {a:"Iran",b:"Iraq",difficulty:2,region:"asia"},
+  {a:"Iran",b:"Turkey",difficulty:2,region:"asia"},
+  {a:"Iran",b:"Pakistan",difficulty:2,region:"asia"},
+  {a:"Iran",b:"Afghanistan",difficulty:2,region:"asia"},
+  {a:"Saudi Arabia",b:"Iraq",difficulty:2,region:"asia"},
+  {a:"Saudi Arabia",b:"Yemen",difficulty:2,region:"asia"},
+  {a:"Kazakhstan",b:"Russia",difficulty:1,region:"asia"},
+  {a:"Turkey",b:"Syria",difficulty:2,region:"asia"},
+  {a:"Turkey",b:"Iraq",difficulty:3,region:"asia"},
+  {a:"Dem. Rep. Congo",b:"Congo",difficulty:2,region:"africa"},
+  {a:"Sudan",b:"Egypt",difficulty:1,region:"africa"},
+  {a:"Sudan",b:"South Sudan",difficulty:2,region:"africa"},
+  {a:"Ethiopia",b:"Kenya",difficulty:2,region:"africa"},
+  {a:"Ethiopia",b:"Somalia",difficulty:2,region:"africa"},
+  {a:"Tanzania",b:"Kenya",difficulty:2,region:"africa"},
+  {a:"South Africa",b:"Mozambique",difficulty:2,region:"africa"},
+  {a:"South Africa",b:"Namibia",difficulty:2,region:"africa"},
+  {a:"South Africa",b:"Botswana",difficulty:3,region:"africa"},
+  {a:"Nigeria",b:"Cameroon",difficulty:2,region:"africa"},
+  {a:"Nigeria",b:"Niger",difficulty:2,region:"africa"},
+  {a:"Morocco",b:"Algeria",difficulty:1,region:"africa"},
+  {a:"Algeria",b:"Tunisia",difficulty:3,region:"africa"},
+  {a:"Algeria",b:"Libya",difficulty:2,region:"africa"},
+  {a:"Mali",b:"Niger",difficulty:2,region:"africa"},
+  {a:"Ghana",b:"Ivory Coast",difficulty:3,region:"africa"},
+  {a:"Senegal",b:"Mauritania",difficulty:3,region:"africa"},
+  {a:"Cameroon",b:"Gabon",difficulty:3,region:"africa"},
+  {a:"Uganda",b:"Dem. Rep. Congo",difficulty:2,region:"africa"},
+  {a:"Zambia",b:"Zimbabwe",difficulty:2,region:"africa"},
+  {a:"Mozambique",b:"Tanzania",difficulty:3,region:"africa"},
+];
+
+const CITIES = [
+  {name:"Barcelona",lat:41.39,lon:2.17,country:"Spain"},
+  {name:"Toulouse",lat:43.60,lon:1.44,country:"France"},
+  {name:"Perpignan",lat:42.70,lon:2.90,country:"France"},
+  {name:"San Sebastián",lat:43.32,lon:-1.98,country:"Spain"},
+  {name:"Bilbao",lat:43.26,lon:-2.93,country:"Spain"},
+  {name:"Strasbourg",lat:48.57,lon:7.75,country:"France"},
+  {name:"Frankfurt",lat:50.11,lon:8.68,country:"Germany"},
+  {name:"Stuttgart",lat:48.78,lon:9.18,country:"Germany"},
+  {name:"Freiburg",lat:47.99,lon:7.85,country:"Germany"},
+  {name:"Basel",lat:47.56,lon:7.59,country:"Switzerland"},
+  {name:"Zürich",lat:47.37,lon:8.54,country:"Switzerland"},
+  {name:"Geneva",lat:46.20,lon:6.15,country:"Switzerland"},
+  {name:"Bern",lat:46.95,lon:7.45,country:"Switzerland"},
+  {name:"Lyon",lat:45.76,lon:4.84,country:"France"},
+  {name:"Milan",lat:45.46,lon:9.19,country:"Italy"},
+  {name:"Turin",lat:45.07,lon:7.69,country:"Italy"},
+  {name:"Nice",lat:43.70,lon:7.27,country:"France"},
+  {name:"Genoa",lat:44.41,lon:8.93,country:"Italy"},
+  {name:"Brussels",lat:50.85,lon:4.35,country:"Belgium"},
+  {name:"Antwerp",lat:51.22,lon:4.40,country:"Belgium"},
+  {name:"Lille",lat:50.63,lon:3.06,country:"France"},
+  {name:"Munich",lat:48.14,lon:11.58,country:"Germany"},
+  {name:"Innsbruck",lat:47.26,lon:11.39,country:"Austria"},
+  {name:"Salzburg",lat:47.80,lon:13.05,country:"Austria"},
+  {name:"Vienna",lat:48.21,lon:16.37,country:"Austria"},
+  {name:"Prague",lat:50.08,lon:14.44,country:"Czechia"},
+  {name:"Bratislava",lat:48.15,lon:17.11,country:"Slovakia"},
+  {name:"Budapest",lat:47.50,lon:19.04,country:"Hungary"},
+  {name:"Warsaw",lat:52.23,lon:21.01,country:"Poland"},
+  {name:"Kraków",lat:50.06,lon:19.94,country:"Poland"},
+  {name:"Lviv",lat:49.84,lon:24.03,country:"Ukraine"},
+  {name:"Kyiv",lat:50.45,lon:30.52,country:"Ukraine"},
+  {name:"Bucharest",lat:44.43,lon:26.10,country:"Romania"},
+  {name:"Sofia",lat:42.70,lon:23.32,country:"Bulgaria"},
+  {name:"Belgrade",lat:44.79,lon:20.47,country:"Serbia"},
+  {name:"Zagreb",lat:45.81,lon:15.98,country:"Croatia"},
+  {name:"Lisbon",lat:38.72,lon:-9.14,country:"Portugal"},
+  {name:"Madrid",lat:40.42,lon:-3.70,country:"Spain"},
+  {name:"Porto",lat:41.15,lon:-8.61,country:"Portugal"},
+  {name:"Seville",lat:37.39,lon:-5.98,country:"Spain"},
+  {name:"Oslo",lat:59.91,lon:10.75,country:"Norway"},
+  {name:"Stockholm",lat:59.33,lon:18.07,country:"Sweden"},
+  {name:"Helsinki",lat:60.17,lon:24.94,country:"Finland"},
+  {name:"Tromsø",lat:69.65,lon:18.96,country:"Norway"},
+  {name:"Amsterdam",lat:52.37,lon:4.90,country:"Netherlands"},
+  {name:"Copenhagen",lat:55.68,lon:12.57,country:"Denmark"},
+  {name:"Tallinn",lat:59.44,lon:24.75,country:"Estonia"},
+  {name:"Riga",lat:56.95,lon:24.11,country:"Latvia"},
+  {name:"Vilnius",lat:54.69,lon:25.28,country:"Lithuania"},
+  {name:"Istanbul",lat:41.01,lon:28.98,country:"Turkey"},
+  {name:"Athens",lat:37.98,lon:23.73,country:"Greece"},
+  {name:"Thessaloniki",lat:40.64,lon:22.94,country:"Greece"},
+  {name:"Sarajevo",lat:43.86,lon:18.41,country:"Bosnia and Herz."},
+  {name:"Minsk",lat:53.90,lon:27.57,country:"Belarus"},
+  {name:"Moscow",lat:55.76,lon:37.62,country:"Russia"},
+  {name:"St. Petersburg",lat:59.93,lon:30.32,country:"Russia"},
+  {name:"New York",lat:40.71,lon:-74.01,country:"United States of America"},
+  {name:"Los Angeles",lat:34.05,lon:-118.24,country:"United States of America"},
+  {name:"San Diego",lat:32.72,lon:-117.16,country:"United States of America"},
+  {name:"El Paso",lat:31.76,lon:-106.44,country:"United States of America"},
+  {name:"Tijuana",lat:32.51,lon:-117.04,country:"Mexico"},
+  {name:"Ciudad Juárez",lat:31.69,lon:-106.42,country:"Mexico"},
+  {name:"Monterrey",lat:25.67,lon:-100.31,country:"Mexico"},
+  {name:"Mexico City",lat:19.43,lon:-99.13,country:"Mexico"},
+  {name:"Toronto",lat:43.65,lon:-79.38,country:"Canada"},
+  {name:"Vancouver",lat:49.28,lon:-123.12,country:"Canada"},
+  {name:"Montreal",lat:45.50,lon:-73.57,country:"Canada"},
+  {name:"Detroit",lat:42.33,lon:-83.05,country:"United States of America"},
+  {name:"Seattle",lat:47.61,lon:-122.33,country:"United States of America"},
+  {name:"Buenos Aires",lat:-34.60,lon:-58.38,country:"Argentina"},
+  {name:"São Paulo",lat:-23.55,lon:-46.63,country:"Brazil"},
+  {name:"Rio de Janeiro",lat:-22.91,lon:-43.17,country:"Brazil"},
+  {name:"Santiago",lat:-33.45,lon:-70.67,country:"Chile"},
+  {name:"Bogotá",lat:4.71,lon:-74.07,country:"Colombia"},
+  {name:"Lima",lat:-12.05,lon:-77.04,country:"Peru"},
+  {name:"La Paz",lat:-16.50,lon:-68.15,country:"Bolivia"},
+  {name:"Montevideo",lat:-34.88,lon:-56.16,country:"Uruguay"},
+  {name:"Caracas",lat:10.49,lon:-66.88,country:"Venezuela"},
+  {name:"Quito",lat:-0.18,lon:-78.47,country:"Ecuador"},
+  {name:"Asunción",lat:-25.26,lon:-57.58,country:"Paraguay"},
+  {name:"New Delhi",lat:28.61,lon:77.21,country:"India"},
+  {name:"Mumbai",lat:19.08,lon:72.88,country:"India"},
+  {name:"Lahore",lat:31.55,lon:74.35,country:"Pakistan"},
+  {name:"Karachi",lat:24.86,lon:67.01,country:"Pakistan"},
+  {name:"Islamabad",lat:33.69,lon:73.04,country:"Pakistan"},
+  {name:"Kathmandu",lat:27.72,lon:85.32,country:"Nepal"},
+  {name:"Dhaka",lat:23.81,lon:90.41,country:"Bangladesh"},
+  {name:"Kolkata",lat:22.57,lon:88.36,country:"India"},
+  {name:"Beijing",lat:39.90,lon:116.40,country:"China"},
+  {name:"Shanghai",lat:31.23,lon:121.47,country:"China"},
+  {name:"Ulaanbaatar",lat:47.89,lon:106.91,country:"Mongolia"},
+  {name:"Hanoi",lat:21.03,lon:105.85,country:"Vietnam"},
+  {name:"Bangkok",lat:13.76,lon:100.50,country:"Thailand"},
+  {name:"Yangon",lat:16.87,lon:96.20,country:"Myanmar"},
+  {name:"Phnom Penh",lat:11.56,lon:104.92,country:"Cambodia"},
+  {name:"Tehran",lat:35.69,lon:51.39,country:"Iran"},
+  {name:"Baghdad",lat:33.31,lon:44.37,country:"Iraq"},
+  {name:"Ankara",lat:39.93,lon:32.85,country:"Turkey"},
+  {name:"Damascus",lat:33.51,lon:36.29,country:"Syria"},
+  {name:"Riyadh",lat:24.71,lon:46.67,country:"Saudi Arabia"},
+  {name:"Pyongyang",lat:39.02,lon:125.75,country:"North Korea"},
+  {name:"Cairo",lat:30.04,lon:31.24,country:"Egypt"},
+  {name:"Khartoum",lat:15.50,lon:32.56,country:"Sudan"},
+  {name:"Nairobi",lat:-1.29,lon:36.82,country:"Kenya"},
+  {name:"Addis Ababa",lat:9.02,lon:38.75,country:"Ethiopia"},
+  {name:"Lagos",lat:6.52,lon:3.38,country:"Nigeria"},
+  {name:"Johannesburg",lat:-26.20,lon:28.05,country:"South Africa"},
+  {name:"Cape Town",lat:-33.93,lon:18.42,country:"South Africa"},
+  {name:"Algiers",lat:36.75,lon:3.04,country:"Algeria"},
+  {name:"Casablanca",lat:33.57,lon:-7.59,country:"Morocco"},
+  {name:"Tunis",lat:36.81,lon:10.17,country:"Tunisia"},
+  {name:"Kampala",lat:0.35,lon:32.58,country:"Uganda"},
+  {name:"Dar es Salaam",lat:-6.79,lon:39.28,country:"Tanzania"},
+  {name:"Lusaka",lat:-15.39,lon:28.32,country:"Zambia"},
+  {name:"Harare",lat:-17.83,lon:31.05,country:"Zimbabwe"},
+  {name:"Maputo",lat:-25.97,lon:32.57,country:"Mozambique"},
+  {name:"Windhoek",lat:-22.56,lon:17.08,country:"Namibia"},
+  {name:"Bamako",lat:12.65,lon:-8.00,country:"Mali"},
+  {name:"Niamey",lat:13.51,lon:2.13,country:"Niger"},
+  {name:"Accra",lat:5.56,lon:-0.19,country:"Ghana"},
+  {name:"Abidjan",lat:5.36,lon:-4.01,country:"Ivory Coast"},
+  {name:"Dakar",lat:14.69,lon:-17.44,country:"Senegal"},
+  {name:"Douala",lat:4.05,lon:9.77,country:"Cameroon"},
+  {name:"Kinshasa",lat:-4.44,lon:15.27,country:"Dem. Rep. Congo"},
+  {name:"Brazzaville",lat:-4.27,lon:15.28,country:"Congo"},
+];
+
+const DISPLACED_JOKES = {
+  "Geneva|Switzerland|France": "The fondue purists are rioting and the banks are packing their vaults onto trucks.",
+  "Basel|Switzerland|Germany": "The entire pharmaceutical industry just changed tax jurisdictions overnight.",
+  "Zürich|Switzerland|France": "The Swiss German dialect finally died — but not the way anyone expected.",
+  "Strasbourg|France|Germany": "You gave Strasbourg to Germany. Again. Someone call the EU Parliament movers.",
+  "Nice|France|Italy": "The Côte d'Azur just became the Costa Azzurra and property prices somehow went UP.",
+  "Barcelona|Spain|France": "Catalonia finally got independence... from Spain AND themselves.",
+  "San Sebastián|Spain|France": "The pintxos bars have been forced to serve croissants.",
+  "Tijuana|Mexico|United States of America": "The taco trucks have been reclassified as domestic cuisine.",
+  "Detroit|United States of America|Canada": "They immediately got universal healthcare but lost the Lions — fair trade?",
+  "Istanbul|Turkey|Greece": "Constantinople rises again! The memes write themselves.",
+  "Thessaloniki|Greece|Turkey": "Alexander the Great is spinning in his tomb.",
+  "Turin|Italy|France": "FIAT stands for 'French-Italian Automobile... Tant pis'.",
+  "Milan|Italy|Switzerland": "Fashion week just got significantly more punctual.",
+  "Milan|Italy|France": "The Milanese fashion houses are now required to serve baguettes at shows.",
+  "Salzburg|Austria|Germany": "Mozart just posthumously changed nationality AGAIN.",
+  "Innsbruck|Austria|Italy": "The ski resorts now serve espresso instead of Glühwein.",
+  "Kraków|Poland|Ukraine": "The pierogi sovereignty crisis has begun.",
+  "Lviv|Ukraine|Poland": "Someone get the history books — oh wait, this has happened before.",
+  "Bratislava|Slovakia|Hungary": "Budapest can finally see it from the other side of the Danube... as domestic territory.",
+  "Lille|France|Belgium": "They gained better beer but lost their sense of superiority.",
+  "El Paso|United States of America|Mexico": "To be fair, the food was already better on that side.",
+  "Ciudad Juárez|Mexico|United States of America": "The border wall architects are very confused.",
+  "Perpignan|France|Spain": "The Catalans finally absorbed their French cousins.",
+  "Brazzaville|Congo|Dem. Rep. Congo": "The world's closest capital cities just became one country's problem.",
+  "Kinshasa|Dem. Rep. Congo|Congo": "The DRC just lost its capital across the river.",
+  "Montreal|Canada|United States of America": "They kept the poutine but lost the healthcare.",
+  "Vancouver|Canada|United States of America": "Housing prices somehow got EVEN WORSE.",
+  "Buenos Aires|Argentina|Uruguay": "The tango and the mate finally have one nationality.",
+  "Santiago|Chile|Argentina": "The Andes are furious.",
+};
+
+let topology, countryFeatures, countryLookup;
+let currentPairs = [], currentRound = 0, totalScore = 0, roundScores = [];
+let showCities = true, currentRegion = 'europe';
+let mapCtx, drawCtx, mapCanvas, drawCanvas;
+let projection, pathGenerator;
+let strokes = [], currentStroke = null, isDrawing = false;
+let actualBorderCoords = [];
+let phase = 'drawing'; // 'drawing' | 'revealed'
+
+async function init() {
+  mapCanvas = document.getElementById('map-canvas');
+  drawCanvas = document.getElementById('draw-canvas');
+  mapCtx = mapCanvas.getContext('2d');
+  drawCtx = drawCanvas.getContext('2d');
+
+  setupCanvasSize();
+  window.addEventListener('resize', () => { setupCanvasSize(); if (phase === 'drawing') renderMap(); });
+
+  setupDrawingEvents();
+  setupControls();
+
+  try {
+    const resp = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json');
+    topology = await resp.json();
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<div style="color:#ff6b6b">Failed to load map data. Check your connection.</div>';
+    return;
+  }
+
+  const countries = topojson.feature(topology, topology.objects.countries);
+  countryFeatures = countries.features;
+  countryLookup = {};
+  countryFeatures.forEach(f => {
+    const numId = parseInt(f.id);
+    for (const [name, id] of Object.entries(COUNTRY_IDS)) {
+      if (id === numId) { countryLookup[name] = f; break; }
+    }
+  });
+
+  document.getElementById('loading').style.display = 'none';
+  startGame();
+}
+
+function setupCanvasSize() {
+  const container = document.getElementById('canvas-container');
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  [mapCanvas, drawCanvas].forEach(c => {
+    c.width = w * dpr;
+    c.height = h * dpr;
+    c.style.width = w + 'px';
+    c.style.height = h + 'px';
+    c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+}
+
+function setupDrawingEvents() {
+  drawCanvas.addEventListener('mousedown', e => startStroke(e.offsetX, e.offsetY));
+  drawCanvas.addEventListener('mousemove', e => { if (isDrawing) continueStroke(e.offsetX, e.offsetY); });
+  drawCanvas.addEventListener('mouseup', endStroke);
+  drawCanvas.addEventListener('mouseleave', endStroke);
+  drawCanvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const r = drawCanvas.getBoundingClientRect();
+    const t = e.touches[0];
+    startStroke(t.clientX - r.left, t.clientY - r.top);
+  });
+  drawCanvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const r = drawCanvas.getBoundingClientRect();
+    const t = e.touches[0];
+    continueStroke(t.clientX - r.left, t.clientY - r.top);
+  });
+  drawCanvas.addEventListener('touchend', e => { e.preventDefault(); endStroke(); });
+}
+
+function startStroke(x, y) {
+  if (phase !== 'drawing') return;
+  isDrawing = true;
+  currentStroke = [{x, y}];
+}
+
+function continueStroke(x, y) {
+  if (!currentStroke) return;
+  currentStroke.push({x, y});
+  redrawDrawing();
+}
+
+function endStroke() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  if (currentStroke && currentStroke.length > 1) {
+    strokes.push(currentStroke);
+  }
+  currentStroke = null;
+  document.getElementById('btn-submit').disabled = strokes.length === 0;
+}
+
+function redrawDrawing() {
+  const w = drawCanvas.width / (window.devicePixelRatio || 1);
+  const h = drawCanvas.height / (window.devicePixelRatio || 1);
+  drawCtx.clearRect(0, 0, w, h);
+  drawCtx.strokeStyle = '#4ecca3';
+  drawCtx.lineWidth = 3;
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
+
+  const all = [...strokes];
+  if (currentStroke) all.push(currentStroke);
+
+  all.forEach(stroke => {
+    if (stroke.length < 2) return;
+    drawCtx.beginPath();
+    drawCtx.moveTo(stroke[0].x, stroke[0].y);
+    for (let i = 1; i < stroke.length; i++) drawCtx.lineTo(stroke[i].x, stroke[i].y);
+    drawCtx.stroke();
+  });
+}
+
+function setupControls() {
+  document.getElementById('btn-undo').addEventListener('click', () => {
+    strokes.pop();
+    redrawDrawing();
+    document.getElementById('btn-submit').disabled = strokes.length === 0;
+  });
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    strokes = [];
+    redrawDrawing();
+    document.getElementById('btn-submit').disabled = true;
+  });
+  document.getElementById('btn-submit').addEventListener('click', submitDrawing);
+  document.getElementById('btn-next').addEventListener('click', nextRound);
+  document.getElementById('btn-play-again').addEventListener('click', () => {
+    document.getElementById('completion-modal').style.display = 'none';
+    startGame();
+  });
+  document.getElementById('region-select').addEventListener('change', e => {
+    currentRegion = e.target.value;
+    startGame();
+  });
+  const citiesToggle = document.getElementById('cities-toggle');
+  citiesToggle.classList.add('active');
+  citiesToggle.addEventListener('click', () => {
+    showCities = !showCities;
+    citiesToggle.classList.toggle('active', showCities);
+    if (phase === 'drawing') renderMap();
+  });
+}
+
+function startGame() {
+  const pairs = BORDER_PAIRS.filter(p => currentRegion === 'world' || p.region === currentRegion);
+  const valid = pairs.filter(p => countryLookup[p.a] && countryLookup[p.b]);
+  if (valid.length === 0) { alert('No valid pairs for this region'); return; }
+  currentPairs = shuffle(valid).slice(0, Math.min(10, valid.length));
+  currentRound = 0;
+  totalScore = 0;
+  roundScores = [];
+  updateScoreDisplay();
+  nextRound();
+}
+
+function nextRound() {
+  if (currentRound >= currentPairs.length) { showCompletion(); return; }
+
+  document.getElementById('score-popup').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+  document.getElementById('btn-submit').style.display = '';
+  document.getElementById('btn-submit').disabled = true;
+
+  strokes = [];
+  phase = 'drawing';
+  drawCanvas.style.pointerEvents = 'auto';
+
+  const pair = currentPairs[currentRound];
+  document.getElementById('country-a-name').textContent = pair.a;
+  document.getElementById('country-b-name').textContent = pair.b;
+  document.getElementById('current-round').textContent = currentRound + 1;
+  document.getElementById('round-label').textContent = `Round ${currentRound + 1} of ${currentPairs.length}`;
+  document.getElementById('progress-fill').style.width = (currentRound / currentPairs.length * 100) + '%';
+
+  renderMap();
+  redrawDrawing();
+}
+
+function renderMap() {
+  const container = document.getElementById('canvas-container');
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  const pair = currentPairs[currentRound];
+  const featureA = countryLookup[pair.a];
+  const featureB = countryLookup[pair.b];
+
+  const sharedBorder = topojson.mesh(topology, topology.objects.countries, (a, b) => {
+    const idA = parseInt(a.id), idB = parseInt(b.id);
+    const pairIdA = COUNTRY_IDS[pair.a], pairIdB = COUNTRY_IDS[pair.b];
+    return (idA === pairIdA && idB === pairIdB) || (idA === pairIdB && idB === pairIdA);
+  });
+
+  // Fit to the shared border region (with padding) so overseas territories don't stretch the view
+  const borderBounds = d3.geoBounds(sharedBorder);
+  const padLon = (borderBounds[1][0] - borderBounds[0][0]) * 1.5 + 2;
+  const padLat = (borderBounds[1][1] - borderBounds[0][1]) * 1.5 + 2;
+  const viewBox = {
+    type: "Polygon",
+    coordinates: [[
+      [borderBounds[0][0] - padLon, borderBounds[0][1] - padLat],
+      [borderBounds[1][0] + padLon, borderBounds[0][1] - padLat],
+      [borderBounds[1][0] + padLon, borderBounds[1][1] + padLat],
+      [borderBounds[0][0] - padLon, borderBounds[1][1] + padLat],
+      [borderBounds[0][0] - padLon, borderBounds[0][1] - padLat],
+    ]]
+  };
+  projection = d3.geoMercator().fitExtent([[50, 50], [w - 50, h - 50]], viewBox);
+  pathGenerator = d3.geoPath(projection);
+
+  actualBorderCoords = extractCoords(sharedBorder);
+
+  mapCtx.clearRect(0, 0, w, h);
+
+  const canvasPath = d3.geoPath(projection, mapCtx);
+
+  // Fill both countries the SAME color — they look like one merged landmass
+  mapCtx.fillStyle = '#1a2940';
+  mapCtx.beginPath();
+  canvasPath(featureA);
+  mapCtx.fill();
+  mapCtx.beginPath();
+  canvasPath(featureB);
+  mapCtx.fill();
+
+  // Stroke only the exterior outline (coastlines + borders with OTHER countries)
+  // The shared border is invisible because it's interior to the merged shape
+  mapCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+  mapCtx.lineWidth = 1.5;
+  mapCtx.beginPath();
+  canvasPath(featureA);
+  mapCtx.stroke();
+  mapCtx.beginPath();
+  canvasPath(featureB);
+  mapCtx.stroke();
+
+  // Erase the shared border stroke so it's truly invisible
+  mapCtx.strokeStyle = '#1a2940';
+  mapCtx.lineWidth = 4;
+  mapCtx.beginPath();
+  canvasPath(sharedBorder);
+  mapCtx.stroke();
+
+  // Country labels at centroids
+  const centA = pathGenerator.centroid(featureA);
+  const centB = pathGenerator.centroid(featureB);
+  mapCtx.font = 'bold 14px -apple-system, sans-serif';
+  mapCtx.textAlign = 'center';
+  mapCtx.fillStyle = 'rgba(255,255,255,0.7)';
+  if (centA[0]) mapCtx.fillText(pair.a, centA[0], centA[1]);
+  if (centB[0]) mapCtx.fillText(pair.b, centB[0], centB[1]);
+
+  // Cities
+  if (showCities) {
+    const relevant = CITIES.filter(c => c.country === pair.a || c.country === pair.b);
+    relevant.forEach(city => {
+      const pt = projection([city.lon, city.lat]);
+      if (!pt || pt[0] < 0 || pt[0] > w || pt[1] < 0 || pt[1] > h) return;
+      mapCtx.fillStyle = '#ffd166';
+      mapCtx.beginPath();
+      mapCtx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
+      mapCtx.fill();
+      mapCtx.font = '10px -apple-system, sans-serif';
+      mapCtx.textAlign = 'left';
+      mapCtx.fillStyle = 'rgba(255,209,102,0.7)';
+      mapCtx.fillText(city.name, pt[0] + 5, pt[1] + 3);
+    });
+  }
+}
+
+function extractCoords(geojson) {
+  const coords = [];
+  if (!geojson || !geojson.coordinates) return coords;
+  if (geojson.type === 'MultiLineString') {
+    geojson.coordinates.forEach(line => {
+      line.forEach(c => {
+        const pt = projection(c);
+        if (pt) coords.push(pt);
+      });
+    });
+  } else if (geojson.type === 'LineString') {
+    geojson.coordinates.forEach(c => {
+      const pt = projection(c);
+      if (pt) coords.push(pt);
+    });
+  }
+  return coords;
+}
+
+function submitDrawing() {
+  phase = 'revealed';
+  drawCanvas.style.pointerEvents = 'none';
+  document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('btn-next').style.display = '';
+
+  const userPoints = strokes.flat();
+  const score = calculateScore(userPoints, actualBorderCoords);
+  const grade = getGrade(score);
+
+  totalScore += score;
+  roundScores.push(score);
+  currentRound++;
+  updateScoreDisplay();
+
+  // Draw actual border on map canvas
+  animateReveal(() => {
+    const displaced = findDisplacedCities(userPoints);
+    showScorePopup(score, grade, displaced);
+  });
+}
+
+function animateReveal(callback) {
+  const coords = actualBorderCoords;
+  if (coords.length < 2) { callback(); return; }
+  const duration = 800;
+  let start = null;
+
+  function frame(ts) {
+    if (!start) start = ts;
+    const progress = Math.min(1, (ts - start) / duration);
+    const count = Math.max(2, Math.floor(coords.length * progress));
+
+    mapCtx.strokeStyle = '#ff6b6b';
+    mapCtx.lineWidth = 3;
+    mapCtx.lineCap = 'round';
+    mapCtx.beginPath();
+    mapCtx.moveTo(coords[0][0], coords[0][1]);
+    for (let i = 1; i < count; i++) {
+      mapCtx.lineTo(coords[i][0], coords[i][1]);
+    }
+    mapCtx.stroke();
+
+    if (progress < 1) requestAnimationFrame(frame);
+    else callback();
+  }
+  requestAnimationFrame(frame);
+}
+
+function calculateScore(userPoints, actualCoords) {
+  if (userPoints.length < 2 || actualCoords.length < 2) return 0;
+
+  const forwardDists = userPoints.map(p => minDistToPolyline(p, actualCoords));
+  const reverseDists = actualCoords.map(p => minDistToPolyline(p, userPoints));
+
+  const forwardAvg = forwardDists.reduce((a, b) => a + b, 0) / forwardDists.length;
+  const reverseAvg = reverseDists.reduce((a, b) => a + b, 0) / reverseDists.length;
+  const avgDist = (forwardAvg + reverseAvg) / 2;
+
+  const bbox = getBBox(actualCoords);
+  const diag = Math.sqrt((bbox.maxX - bbox.minX) ** 2 + (bbox.maxY - bbox.minY) ** 2);
+  const threshold = diag * 0.35;
+
+  const raw = Math.max(0, 1 - avgDist / threshold);
+  return Math.round(raw * 100);
+}
+
+function px(p) { return Array.isArray(p) ? p[0] : p.x; }
+function py(p) { return Array.isArray(p) ? p[1] : p.y; }
+
+function minDistToPolyline(point, polyline) {
+  let min = Infinity;
+  for (let i = 0; i < polyline.length - 1; i++) {
+    const d = pointToSegmentDist(point, polyline[i], polyline[i + 1]);
+    if (d < min) min = d;
+  }
+  return min;
+}
+
+function pointToSegmentDist(p, a, b) {
+  const ax = px(a), ay = py(a), bx = px(b), by = py(b);
+  const ppx = px(p), ppy = py(p);
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(ppx - ax, ppy - ay);
+  let t = ((ppx - ax) * dx + (ppy - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = ax + t * dx, projY = ay + t * dy;
+  return Math.hypot(ppx - projX, ppy - projY);
+}
+
+function getBBox(coords) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  coords.forEach(([x, y]) => {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  });
+  return { minX, minY, maxX, maxY };
+}
+
+function getGrade(score) {
+  if (score >= 90) return { letter: 'A+', label: 'Perfect!' };
+  if (score >= 80) return { letter: 'A', label: 'Excellent!' };
+  if (score >= 70) return { letter: 'B', label: 'Good!' };
+  if (score >= 55) return { letter: 'C', label: 'Decent' };
+  if (score >= 40) return { letter: 'D', label: 'Rough idea' };
+  return { letter: 'F', label: 'Way off!' };
+}
+
+function findDisplacedCities(userPoints) {
+  if (userPoints.length < 3) return [];
+  const pair = currentPairs[currentRound - 1];
+  const featureA = countryLookup[pair.a];
+  const featureB = countryLookup[pair.b];
+  const centA = pathGenerator.centroid(featureA);
+  const centB = pathGenerator.centroid(featureB);
+  if (!centA || !centB) return [];
+
+  const sideA = getSideOfLine({x: centA[0], y: centA[1]}, userPoints);
+  const sideB = getSideOfLine({x: centB[0], y: centB[1]}, userPoints);
+  if (sideA === 0 || sideB === 0 || sideA === sideB) return [];
+
+  const relevant = CITIES.filter(c => c.country === pair.a || c.country === pair.b);
+  const displaced = [];
+
+  relevant.forEach(city => {
+    const pt = projection([city.lon, city.lat]);
+    if (!pt) return;
+    const citySide = getSideOfLine({x: pt[0], y: pt[1]}, userPoints);
+    if (citySide === 0) return;
+
+    const belongsToA = city.country === pair.a;
+    const isOnASide = citySide === sideA;
+
+    if (belongsToA && !isOnASide) {
+      displaced.push({ city: city.name, from: pair.a, to: pair.b });
+    } else if (!belongsToA && isOnASide) {
+      displaced.push({ city: city.name, from: pair.b, to: pair.a });
+    }
+  });
+
+  return displaced;
+}
+
+function getSideOfLine(point, linePoints) {
+  let nearestDist = Infinity, nearestIdx = 0;
+  for (let i = 0; i < linePoints.length - 1; i++) {
+    const a = linePoints[i], b = linePoints[i + 1];
+    const ax = Array.isArray(a) ? a[0] : a.x, ay = Array.isArray(a) ? a[1] : a.y;
+    const bx = Array.isArray(b) ? b[0] : b.x, by = Array.isArray(b) ? b[1] : b.y;
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) continue;
+    let t = ((point.x - ax) * dx + (point.y - ay) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const projX = ax + t * dx, projY = ay + t * dy;
+    const d = Math.hypot(point.x - projX, point.y - projY);
+    if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+  }
+
+  const a = linePoints[nearestIdx], b = linePoints[Math.min(nearestIdx + 1, linePoints.length - 1)];
+  const ax = Array.isArray(a) ? a[0] : a.x, ay = Array.isArray(a) ? a[1] : a.y;
+  const bx = Array.isArray(b) ? b[0] : b.x, by = Array.isArray(b) ? b[1] : b.y;
+  const cross = (bx - ax) * (point.y - ay) - (by - ay) * (point.x - ax);
+  if (Math.abs(cross) < 1) return 0;
+  return cross > 0 ? 1 : -1;
+}
+
+function showScorePopup(score, grade, displaced) {
+  const popup = document.getElementById('score-popup');
+  document.getElementById('popup-score').textContent = score;
+  document.getElementById('popup-grade').textContent = `${grade.letter} — ${grade.label}`;
+  document.getElementById('popup-detail').textContent = `+${score} points`;
+
+  const msgEl = document.getElementById('displaced-message');
+  if (displaced.length > 0) {
+    const pick = displaced[0];
+    let msg = '';
+    const jokeKey = `${pick.city}|${pick.from}|${pick.to}`;
+    if (DISPLACED_JOKES[jokeKey]) {
+      msg = DISPLACED_JOKES[jokeKey];
+    } else {
+      msg = generateGenericJoke(pick);
+    }
+    msgEl.innerHTML = `<span class="city-name">📍 ${pick.city}</span> is now in ${pick.to}!<br><span class="funny">${msg}</span>`;
+    if (displaced.length > 1) {
+      msgEl.innerHTML += `<br><span style="color:#8b949e;font-size:11px;margin-top:4px;display:inline-block">...and ${displaced.length - 1} other cit${displaced.length - 1 === 1 ? 'y' : 'ies'} displaced</span>`;
+    }
+    msgEl.style.display = '';
+  } else {
+    msgEl.style.display = 'none';
+  }
+
+  popup.style.display = 'block';
+}
+
+function generateGenericJoke(d) {
+  const jokes = [
+    `The people of ${d.city} woke up ${d.to === d.from ? 'confused' : d.to + '-ish'} today. Passports are being reprinted as we speak.`,
+    `${d.city} has been annexed by ${d.to}. The locals are adjusting their flags and their attitudes.`,
+    `Breaking news: ${d.city} is now in ${d.to}. Google Maps is having a meltdown.`,
+    `You've redrawn history! ${d.city} now belongs to ${d.to}. The UN has been notified.`,
+    `${d.city}'s residents just changed nationality. The paperwork is going to be enormous.`,
+  ];
+  return jokes[Math.floor(Math.random() * jokes.length)];
+}
+
+function updateScoreDisplay() {
+  document.getElementById('total-score').textContent = totalScore;
+  document.getElementById('total-rounds').textContent = currentPairs.length;
+}
+
+function showCompletion() {
+  const modal = document.getElementById('completion-modal');
+  const avg = roundScores.length ? Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length) : 0;
+  const best = roundScores.length ? Math.max(...roundScores) : 0;
+  const worst = roundScores.length ? Math.min(...roundScores) : 0;
+  const avgGrade = getGrade(avg);
+
+  document.getElementById('final-score').textContent = totalScore;
+  document.getElementById('final-stats').innerHTML =
+    `Average: ${avg}% (${avgGrade.letter})<br>Best round: ${best}%<br>Worst round: ${worst}%<br>Rounds played: ${roundScores.length}`;
+  modal.style.display = 'flex';
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+init();
+</script>
+</body>
+</html>

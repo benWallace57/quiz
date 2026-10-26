@@ -193,75 +193,55 @@ body.show-answers .fact-note:not(:empty) { display: block; }
 // Generated with tools/sport_maths/find_combos.py, hand-picked.
 // Each question reads: facts[0] op facts[1] = facts[2].
 const QUESTIONS = [
-  { op: '+', facts: [
+  { op: '×', facts: [
     { sport: 'Formula 1', label: "Lewis Hamilton's F1 World Championships", value: 7, note: '2008, 2014, 2015, 2017, 2018, 2019, 2020' },
-    { sport: 'Football', label: "Manchester City's Premier League titles", value: 8, note: '2012, 2014, 2018, 2019, 2021, 2022, 2023, 2024' },
-    { sport: 'Snooker', label: 'Red balls on a snooker table', value: 15, note: 'Plus six colours, making 22 balls with the cue ball' },
+    { sport: 'Football', label: 'Premier League titles won by the two Manchester clubs, combined', value: 21, note: 'United 13 + City 8' },
+    { sport: 'Snooker', label: 'Maximum snooker break', value: 147, note: '15 reds with 15 blacks, then all the colours' },
   ]},
-  { op: '×', facts: [
-    { sport: 'Snooker', label: 'Pockets on a snooker table', value: 6, note: 'Four corners, two middles' },
-    { sport: 'Golf', label: "Tiger Woods's major titles", value: 15, note: '5 Masters, 4 PGA Championships, 3 US Opens, 3 Opens' },
-    { sport: 'Football', label: 'Minutes in a football match', value: 90, note: 'Two halves of 45, plus stoppage time' },
-  ]},
-  { op: '+', facts: [
-    { sport: 'Football', label: "Manchester United's Premier League titles", value: 13, note: 'All under Sir Alex Ferguson, the last in 2013' },
-    { sport: 'Rugby union', label: 'Points for a try in rugby union', value: 5, note: 'Raised from 4 to 5 in 1992' },
-    { sport: 'Golf', label: 'Holes on a full golf course', value: 18, note: 'St Andrews settled on 18 holes in 1764' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Golf', label: 'Holes on a full golf course', value: 18, note: '' },
-    { sport: 'Football', label: "Pelé's shirt number", value: 10, note: 'Brazil and Santos' },
-    { sport: 'Darts', label: 'Maximum score with three darts', value: 180, note: 'Three treble 20s' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Darts', label: 'Fewest darts needed to finish a 501 leg', value: 9, note: 'The nine-dart finish' },
-    { sport: 'Football', label: 'Players in a football team', value: 11, note: '' },
-    { sport: 'Ice hockey', label: "Wayne Gretzky's shirt number", value: 99, note: 'Retired across the whole NHL in 2000' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Tennis', label: 'Grand Slam tennis tournaments each year', value: 4, note: 'Australian Open, French Open, Wimbledon, US Open' },
-    { sport: 'Basketball', label: "Michael Jordan's shirt number", value: 23, note: 'He also wore 45 (and once 12)' },
-    { sport: 'Football', label: 'Clubs in the top four divisions of English football', value: 92, note: '20 in the Premier League + 72 in the EFL' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Snooker', label: 'Points for potting the black', value: 7, note: '' },
-    { sport: 'NFL', label: "Tom Brady's Super Bowl wins", value: 7, note: 'Six with New England, one with Tampa Bay' },
-    { sport: 'Football', label: "Arsenal's unbeaten league run (the Invincibles)", value: 49, note: 'May 2003 to October 2004' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Darts', label: 'Fewest darts needed to finish a 501 leg', value: 9, note: '' },
-    { sport: 'Athletics', label: "Usain Bolt's Olympic gold medals", value: 8, note: 'Nine won; one 4×100m relay gold was taken away in 2017' },
+  { op: '−', facts: [
+    { sport: 'Football', label: 'Clubs in the top four divisions of English football', value: 92, note: 'The "92 club"' },
+    { sport: 'Football', label: 'Teams in the Premier League', value: 20, note: 'Leaving 72 in the EFL' },
     { sport: 'Golf', label: 'Par for a typical championship golf course', value: 72, note: '' },
   ]},
+  { op: '−', facts: [
+    { sport: 'Swimming', label: "Michael Phelps's Olympic gold medals", value: 23, note: 'Out of 28 Olympic medals' },
+    { sport: 'Athletics', label: "Usain Bolt's Olympic gold medals", value: 8, note: 'Nine won; one 4×100m relay gold was taken away in 2017' },
+    { sport: 'Rugby union', label: 'Players in a rugby union team', value: 15, note: '' },
+  ]},
+  { op: '÷', facts: [
+    { sport: 'Football', label: "Leicester's odds of winning the 2015-16 Premier League (__-1)", value: 5000, note: 'And they won it' },
+    { sport: 'Cricket', label: "Sachin Tendulkar's international centuries", value: 100, note: '51 in Tests, 49 in ODIs' },
+    { sport: 'Boxing', label: "Floyd Mayweather's professional wins (unbeaten)", value: 50, note: '50-0, the last against Conor McGregor in 2017' },
+  ]},
   { op: '×', facts: [
-    { sport: 'Cricket', label: 'Balls in a cricket over', value: 6, note: '' },
-    { sport: 'Darts', label: 'Points for a bullseye', value: 50, note: 'The outer bull is worth 25' },
+    { sport: 'Football', label: "Cristiano Ronaldo's shirt number", value: 7, note: 'Man United, Real Madrid and Portugal' },
+    { sport: 'Cycling', label: "Chris Hoy's Olympic gold medals", value: 6, note: '2004, 2008 (3), 2012 (2)' },
+    { sport: 'Athletics', label: 'Whole kilometres in a marathon', value: 42, note: '42.195 km' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Boxing', label: 'Rounds in a world title boxing fight', value: 12, note: '' },
+    { sport: 'Formula 1', label: 'Points for winning a Formula 1 Grand Prix', value: 25, note: 'Since 2010' },
     { sport: 'Bowling', label: 'Perfect score in ten-pin bowling', value: 300, note: '12 strikes in a row' },
   ]},
   { op: '×', facts: [
-    { sport: 'Athletics', label: 'Whole miles in a marathon', value: 26, note: '26 miles 385 yards' },
-    { sport: 'Bowling', label: 'Pins in ten-pin bowling', value: 10, note: '' },
-    { sport: 'Football', label: "Alan Shearer's Premier League goals", value: 260, note: 'Still the Premier League record' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Football', label: "Lionel Messi's shirt number for Argentina", value: 10, note: '' },
-    { sport: 'Tennis', label: "A tennis player's score after winning three points in a game", value: 40, note: 'Love, 15, 30, 40' },
-    { sport: 'Cricket', label: "Brian Lara's record Test score", value: 400, note: '400 not out against England, Antigua 2004' },
+    { sport: 'Darts', label: 'Fewest darts needed to finish a 501 leg', value: 9, note: 'The nine-dart finish' },
+    { sport: 'Cricket', label: 'Players in a cricket team', value: 11, note: '' },
+    { sport: 'Ice hockey', label: "Wayne Gretzky's shirt number", value: 99, note: 'Retired across the whole NHL in 2000' },
   ]},
   { op: '+', facts: [
-    { sport: 'Snooker', label: 'Maximum snooker break', value: 147, note: '' },
-    { sport: 'Swimming', label: "Michael Phelps's Olympic gold medals", value: 23, note: 'Out of 28 Olympic medals' },
-    { sport: 'Darts', label: 'Highest possible checkout in darts', value: 170, note: 'Treble 20, treble 20, bullseye' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Darts', label: 'Points for a bullseye', value: 50, note: '' },
-    { sport: 'Cricket', label: "Sachin Tendulkar's international centuries", value: 100, note: '51 in Tests, 49 in ODIs' },
-    { sport: 'Football', label: "Leicester's odds of winning the 2015-16 Premier League (__-1)", value: 5000, note: 'And they won it' },
-  ]},
-  { op: '×', facts: [
-    { sport: 'Formula 1', label: "Lewis Hamilton's F1 World Championships", value: 7, note: '' },
+    { sport: 'Golf', label: "Tiger Woods's major titles", value: 15, note: '5 Masters, 4 PGA Championships, 3 US Opens, 3 Opens' },
+    { sport: 'Basketball', label: "Michael Jordan's NBA titles", value: 6, note: 'Two three-peats with Chicago: 1991-93, 1996-98' },
     { sport: 'Cycling', label: 'Stages in the Tour de France', value: 21, note: '' },
-    { sport: 'Snooker', label: 'Maximum snooker break', value: 147, note: '15 reds with 15 blacks, then all the colours' },
+  ]},
+  { op: '−', facts: [
+    { sport: 'Football', label: "Erling Haaland's record Premier League goals in a season", value: 36, note: '2022-23, his first season' },
+    { sport: 'Darts', label: "Phil Taylor's World Darts titles", value: 16, note: '' },
+    { sport: 'Tennis', label: "Roger Federer's Grand Slam singles titles", value: 20, note: '8 Wimbledon, 6 Australian, 5 US, 1 French' },
+  ]},
+  { op: '+', facts: [
+    { sport: 'Snooker', label: 'Red balls in snooker', value: 15, note: '' },
+    { sport: 'NFL', label: "Tom Brady's Super Bowl wins", value: 7, note: 'Six with New England, one with Tampa Bay' },
+    { sport: 'Tennis', label: "Rafael Nadal's Grand Slam singles titles", value: 22, note: '14 of them at the French Open' },
   ]},
 ];
 

@@ -73,6 +73,7 @@
     {"id": "rooney_goals", "label": "Wayne Rooney's Premier League goals", "value": 208, "sport": "football", "kind": "record", "fame": 1},
     {"id": "haaland_36", "label": "Erling Haaland's record Premier League goals in a season", "value": 36, "sport": "football", "kind": "record", "fame": 2},
     {"id": "mufc_pl", "label": "Manchester United's Premier League titles", "value": 13, "sport": "football", "kind": "title", "fame": 3},
+    {"id": "manchester_pl", "label": "Premier League titles won by the two Manchester clubs, combined", "value": 21, "sport": "football", "kind": "title", "fame": 3, "volatile": true},
     {"id": "mcfc_pl", "label": "Manchester City's Premier League titles", "value": 8, "sport": "football", "kind": "title", "fame": 3, "volatile": true},
     {"id": "chelsea_pl", "label": "Chelsea's Premier League titles", "value": 5, "sport": "football", "kind": "title", "fame": 2, "volatile": true},
     {"id": "arsenal_pl", "label": "Arsenal's Premier League titles", "value": 4, "sport": "football", "kind": "title", "fame": 2, "volatile": true},

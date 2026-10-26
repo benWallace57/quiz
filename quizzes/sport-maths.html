@@ -17,209 +17,181 @@ body {
 
 .container { max-width: 980px; margin: 0 auto; }
 
+.back-link { color: #8b949e; text-decoration: none; font-size: 0.9rem; }
+.back-link:hover { color: #e0e0e0; }
+
 header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 8px;
+  align-items: flex-end;
+  margin: 12px 0 8px;
   gap: 12px;
   flex-wrap: wrap;
 }
 
 h1 { font-size: 2rem; color: #3fb950; }
-h1 a { color: inherit; text-decoration: none; }
 
-.stats { color: #8b949e; font-size: 0.95rem; }
-.stats strong { color: #e0e0e0; }
+.name-line { font-size: 0.95rem; color: #8b949e; display: none; }
 
 .intro {
   color: #8b949e;
   font-size: 0.9rem;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   line-height: 1.5;
 }
 
-.progress {
-  height: 4px;
-  background: #21262d;
-  border-radius: 2px;
-  margin-bottom: 28px;
-  overflow: hidden;
-}
-.progress-bar { height: 100%; background: #3fb950; width: 0; transition: width 0.3s; }
-
-.equation {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr;
-  align-items: stretch;
+.toolbar {
+  display: flex;
   gap: 12px;
-}
-
-.tile {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 12px;
-  padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-  transition: border-color 0.2s, background 0.2s;
-}
-
-.tile-sport {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #3fb950;
-  font-weight: 600;
-}
-
-.tile-label { font-size: 1rem; line-height: 1.35; flex: 1; }
-
-.tile input {
-  width: 100%;
-  background: #0d1117;
-  border: 2px solid #30363d;
-  border-radius: 8px;
-  color: #e0e0e0;
-  font-size: 1.8rem;
-  font-weight: 700;
-  text-align: center;
-  padding: 8px;
-  font-variant-numeric: tabular-nums;
-}
-.tile input:focus { outline: none; border-color: #58a6ff; }
-.tile input::-webkit-outer-spin-button,
-.tile input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.tile input[type=number] { -moz-appearance: textfield; }
-
-.tile.correct { border-color: #3fb950; background: rgba(63, 185, 80, 0.08); }
-.tile.correct input { border-color: #3fb950; color: #3fb950; }
-.tile.wrong input { border-color: #f85149; animation: shake 0.3s; }
-.tile.revealed { border-color: #d29922; }
-.tile.revealed input { border-color: #d29922; color: #d29922; }
-
-.tile-note {
-  font-size: 0.78rem;
-  color: #8b949e;
-  line-height: 1.35;
-  display: none;
-}
-.tile.correct .tile-note, .tile.revealed .tile-note { display: block; }
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-.op {
-  font-size: 2.4rem;
-  font-weight: 700;
-  color: #8b949e;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 28px;
-}
-
-.maths-check {
-  text-align: center;
-  margin: 22px 0 6px;
-  min-height: 1.4em;
-  font-size: 0.95rem;
-  color: #8b949e;
-  font-variant-numeric: tabular-nums;
-}
-.maths-check.ok { color: #3fb950; }
-.maths-check.bad { color: #f85149; }
-
-.controls {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 16px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
+.toolbar .count { color: #8b949e; font-size: 0.85rem; margin-left: auto; }
 
 button {
   background: #21262d;
   color: #e0e0e0;
   border: 1px solid #30363d;
   border-radius: 8px;
-  padding: 10px 22px;
-  font-size: 0.95rem;
+  padding: 8px 18px;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 button:hover { background: #30363d; }
 button.primary { background: #238636; border-color: #2ea043; color: #fff; }
 button.primary:hover { background: #2ea043; }
-button:disabled { opacity: 0.4; cursor: default; }
 
-.hidden { display: none !important; }
+.question {
+  display: grid;
+  grid-template-columns: 2.2em 1fr auto 1fr auto 1fr;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid #21262d;
+  break-inside: avoid;
+}
 
-.summary { text-align: center; }
-.summary h2 { font-size: 1.8rem; margin-bottom: 8px; color: #3fb950; }
-.summary .final-score { font-size: 1.1rem; color: #8b949e; margin-bottom: 28px; }
-.summary-list { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
-.summary-row {
+.qnum {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #3fb950;
+  padding-top: 2px;
+}
+
+.fact {
   background: #161b22;
   border: 1px solid #30363d;
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 10px;
+  padding: 12px 14px;
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: 0.88rem;
+  flex-direction: column;
+  gap: 8px;
 }
-.summary-row .sum { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.summary-row .labels { color: #8b949e; }
-.summary-row .pts { color: #3fb950; font-weight: 600; white-space: nowrap; }
 
-.asof { text-align: center; color: #484f58; font-size: 0.75rem; margin-top: 36px; }
+.fact-sport {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #3fb950;
+  font-weight: 600;
+}
 
-@media (max-width: 720px) {
-  .equation { grid-template-columns: 1fr; }
-  .op { font-size: 1.8rem; min-height: 0; }
-  .tile { padding: 14px; gap: 10px; }
+.fact-label { font-size: 0.95rem; line-height: 1.35; flex: 1; }
+
+.answer-box {
+  border: 2px solid #30363d;
+  border-radius: 6px;
+  height: 2.6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #d29922;
+}
+.answer-box .value { display: none; }
+
+.fact-note {
+  font-size: 0.75rem;
+  color: #8b949e;
+  line-height: 1.35;
+  display: none;
+}
+
+.op {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.maths-warning {
+  grid-column: 2 / -1;
+  color: #f85149;
+  font-size: 0.85rem;
+}
+
+body.show-answers .answer-box .value,
+body.show-answers .fact-note:not(:empty) { display: block; }
+
+.asof { text-align: center; color: #484f58; font-size: 0.75rem; margin-top: 28px; }
+
+@media screen and (max-width: 720px) {
+  .question { grid-template-columns: 1fr; }
+  .op { font-size: 1.6rem; }
+}
+
+@media print {
+  @page { margin: 14mm; }
+  body { background: #fff; color: #000; padding: 0; font-size: 10pt; }
+  .back-link, .toolbar, .maths-warning { display: none !important; }
+  .name-line { display: block; color: #000; }
+  h1 { color: #000; font-size: 20pt; }
+  .intro { color: #333; margin-bottom: 8px; }
+  .question { border-bottom: 1px solid #ccc; padding: 6px 0; gap: 8px; }
+  .qnum { color: #000; font-size: 13pt; }
+  .fact { background: #fff; border: 1px solid #999; border-radius: 6px; padding: 5px 8px; gap: 3px; }
+  .fact-sport { color: #555; font-size: 6.5pt; }
+  .fact-label { font-size: 9.5pt; line-height: 1.25; }
+  .op { color: #000; font-size: 18pt; }
+  .answer-box { border: 1.5px solid #000; height: 1.9em; font-size: 13pt; color: #000; }
+  .fact-note { font-size: 7pt; }
+  .fact-note { color: #444; }
+  .asof { color: #888; }
 }
 </style>
 </head>
 <body>
 
 <div class="container">
+  <a class="back-link" href="../index.html">&larr; All quizzes</a>
   <header>
-    <h1><a href="../index.html">Sport Maths</a></h1>
-    <div class="stats">Question <strong id="qnum">1</strong> / <strong id="qtotal"></strong> &nbsp;·&nbsp; Score <strong id="score">0</strong></div>
+    <h1>Sport Maths</h1>
+    <div class="name-line">Name: ______________________ &nbsp; Score: ____ / <span id="max-score"></span></div>
   </header>
-  <p class="intro">Three sporting numbers make a sum. Fill in all three. If you know two of them, the maths gives you the third.
-    Every number scores 3 points if right on your first check, 2 on your second, and 1 after that.</p>
-  <div class="progress"><div class="progress-bar" id="progress"></div></div>
+  <p class="intro">Each line is a sum made of three sporting numbers. Fill in all three boxes.
+    Know two of them? Use the maths to work out the third. One point per correct number.</p>
 
-  <div id="game">
-    <div class="equation" id="equation"></div>
-    <div class="maths-check" id="maths-check"></div>
-    <div class="controls">
-      <button class="primary" id="check-btn">Check</button>
-      <button id="reveal-btn">Reveal</button>
-      <button class="primary hidden" id="next-btn">Next →</button>
-    </div>
+  <div class="toolbar">
+    <button class="primary" onclick="window.print()">Print</button>
+    <button id="answers-btn" onclick="toggleAnswers()">Show Answers</button>
+    <span class="count" id="count"></span>
   </div>
 
-  <div id="summary" class="summary hidden">
-    <h2>Full time</h2>
-    <div class="final-score" id="final-score"></div>
-    <div class="summary-list" id="summary-list"></div>
-    <button class="primary" id="restart-btn">Play again</button>
-  </div>
+  <div id="questions"></div>
 
   <p class="asof">Facts correct as of October 2026</p>
 </div>
 
 <script>
 // Generated with tools/sport_maths/find_combos.py, hand-picked.
+// Each question reads: facts[0] op facts[1] = facts[2].
 const QUESTIONS = [
   { op: '+', facts: [
     { sport: 'Formula 1', label: "Lewis Hamilton's F1 World Championships", value: 7, note: '2008, 2014, 2015, 2017, 2018, 2019, 2020' },
@@ -295,48 +267,15 @@ const QUESTIONS = [
 
 const OP_FN = { '+': (a, b) => a + b, '−': (a, b) => a - b, '×': (a, b) => a * b, '÷': (a, b) => a / b };
 
-const state = {
-  index: 0,
-  score: 0,
-  checks: 0,
-  solved: [false, false, false],
-  revealed: false,
-  history: [],
-};
-
-const $ = id => document.getElementById(id);
-
-function render() {
-  const q = QUESTIONS[state.index];
-  $('qnum').textContent = state.index + 1;
-  $('qtotal').textContent = QUESTIONS.length;
-  $('score').textContent = state.score;
-  $('progress').style.width = (state.index / QUESTIONS.length * 100) + '%';
-  $('maths-check').textContent = '';
-  $('maths-check').className = 'maths-check';
-
-  const eq = $('equation');
-  eq.innerHTML = '';
-  q.facts.forEach((f, i) => {
-    if (i === 1) eq.appendChild(opEl(q.op));
-    if (i === 2) eq.appendChild(opEl('='));
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.innerHTML = `
-      <div class="tile-sport">${f.sport}</div>
-      <div class="tile-label">${f.label}</div>
-      <input type="number" inputmode="numeric" autocomplete="off" aria-label="${f.label}">
-      <div class="tile-note">${f.note}</div>`;
-    const input = tile.querySelector('input');
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
-    input.addEventListener('input', () => { tile.classList.remove('wrong'); updateMathsCheck(); });
-    eq.appendChild(tile);
-  });
-
-  $('check-btn').classList.remove('hidden');
-  $('reveal-btn').classList.remove('hidden');
-  $('next-btn').classList.add('hidden');
-  eq.querySelector('input').focus();
+function factEl(f) {
+  const el = document.createElement('div');
+  el.className = 'fact';
+  el.innerHTML = `
+    <div class="fact-sport">${f.sport}</div>
+    <div class="fact-label">${f.label}</div>
+    <div class="answer-box"><span class="value">${f.value}</span></div>
+    <div class="fact-note">${f.note}</div>`;
+  return el;
 }
 
 function opEl(sym) {
@@ -346,121 +285,35 @@ function opEl(sym) {
   return el;
 }
 
-function tiles() { return [...$('equation').querySelectorAll('.tile')]; }
+function render() {
+  const container = document.getElementById('questions');
+  QUESTIONS.forEach((q, i) => {
+    const row = document.createElement('div');
+    row.className = 'question';
+    const num = document.createElement('div');
+    num.className = 'qnum';
+    num.textContent = i + 1;
+    row.append(num, factEl(q.facts[0]), opEl(q.op), factEl(q.facts[1]), opEl('='), factEl(q.facts[2]));
 
-function readValues() {
-  return tiles().map(t => {
-    const v = t.querySelector('input').value.trim();
-    return v === '' ? null : Number(v);
-  });
-}
-
-// Tells the player whether their three numbers are at least consistent.
-function updateMathsCheck() {
-  const q = QUESTIONS[state.index];
-  const [a, b, c] = readValues();
-  const el = $('maths-check');
-  if (a === null || b === null || c === null) {
-    el.textContent = '';
-    el.className = 'maths-check';
-    return;
-  }
-  const result = OP_FN[q.op](a, b);
-  const ok = result === c;
-  el.textContent = ok ? `${a} ${q.op} ${b} = ${c} ✓ the maths works`
-                      : `${a} ${q.op} ${b} = ${+result.toFixed(2)}, not ${c}`;
-  el.className = 'maths-check ' + (ok ? 'ok' : 'bad');
-}
-
-function check() {
-  if (state.revealed || state.solved.every(Boolean)) return;
-  const q = QUESTIONS[state.index];
-  const values = readValues();
-  if (values.every(v => v === null)) return;
-  state.checks++;
-  const pts = Math.max(1, 4 - state.checks);
-
-  tiles().forEach((tile, i) => {
-    if (state.solved[i] || values[i] === null) return;
-    const input = tile.querySelector('input');
-    if (values[i] === q.facts[i].value) {
-      state.solved[i] = true;
-      state.score += pts;
-      tile.classList.add('correct');
-      input.disabled = true;
-    } else {
-      tile.classList.remove('wrong');
-      void tile.offsetWidth; // restart shake animation
-      tile.classList.add('wrong');
+    // Flags a broken sum while editing; hidden when printed.
+    const [a, b, c] = q.facts.map(f => f.value);
+    const result = OP_FN[q.op] ? OP_FN[q.op](a, b) : NaN;
+    if (result !== c) {
+      const warn = document.createElement('div');
+      warn.className = 'maths-warning';
+      warn.textContent = `⚠ Maths doesn't work: ${a} ${q.op} ${b} = ${result}, not ${c}`;
+      row.appendChild(warn);
     }
+    container.appendChild(row);
   });
-
-  $('score').textContent = state.score;
-  if (state.solved.every(Boolean)) finishQuestion();
-  else tiles().find((t, i) => !state.solved[i]).querySelector('input').focus();
+  document.getElementById('max-score').textContent = QUESTIONS.length * 3;
+  document.getElementById('count').textContent = `${QUESTIONS.length} questions · ${QUESTIONS.length * 3} points`;
 }
 
-function reveal() {
-  const q = QUESTIONS[state.index];
-  state.revealed = true;
-  tiles().forEach((tile, i) => {
-    if (state.solved[i]) return;
-    const input = tile.querySelector('input');
-    input.value = q.facts[i].value;
-    input.disabled = true;
-    tile.classList.remove('wrong');
-    tile.classList.add('revealed');
-  });
-  finishQuestion();
+function toggleAnswers() {
+  const on = document.body.classList.toggle('show-answers');
+  document.getElementById('answers-btn').textContent = on ? 'Hide Answers' : 'Show Answers';
 }
-
-function finishQuestion() {
-  const q = QUESTIONS[state.index];
-  const [a, b, c] = q.facts.map(f => f.value);
-  $('maths-check').textContent = `${a} ${q.op} ${b} = ${c}`;
-  $('maths-check').className = 'maths-check ok';
-  state.history.push({ q, solved: state.solved.filter(Boolean).length });
-  $('check-btn').classList.add('hidden');
-  $('reveal-btn').classList.add('hidden');
-  $('next-btn').classList.remove('hidden');
-  $('next-btn').focus();
-}
-
-function next() {
-  state.index++;
-  state.checks = 0;
-  state.solved = [false, false, false];
-  state.revealed = false;
-  if (state.index >= QUESTIONS.length) showSummary();
-  else render();
-}
-
-function showSummary() {
-  $('game').classList.add('hidden');
-  $('summary').classList.remove('hidden');
-  $('progress').style.width = '100%';
-  const max = QUESTIONS.length * 9;
-  $('final-score').textContent = `${state.score} / ${max} points`;
-  $('summary-list').innerHTML = state.history.map(({ q, solved }) => {
-    const [a, b, c] = q.facts;
-    return `<div class="summary-row">
-      <div><div class="sum">${a.value} ${q.op} ${b.value} = ${c.value}</div>
-      <div class="labels">${a.label} ${q.op} ${b.label} = ${c.label}</div></div>
-      <div class="pts">${solved}/3</div></div>`;
-  }).join('');
-}
-
-function restart() {
-  Object.assign(state, { index: 0, score: 0, checks: 0, solved: [false, false, false], revealed: false, history: [] });
-  $('summary').classList.add('hidden');
-  $('game').classList.remove('hidden');
-  render();
-}
-
-$('check-btn').addEventListener('click', check);
-$('reveal-btn').addEventListener('click', reveal);
-$('next-btn').addEventListener('click', next);
-$('restart-btn').addEventListener('click', restart);
 
 render();
 </script>

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sport Maths</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d1117;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+
+.container { max-width: 980px; margin: 0 auto; }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+h1 { font-size: 2rem; color: #3fb950; }
+h1 a { color: inherit; text-decoration: none; }
+
+.stats { color: #8b949e; font-size: 0.95rem; }
+.stats strong { color: #e0e0e0; }
+
+.intro {
+  color: #8b949e;
+  font-size: 0.9rem;
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+.progress {
+  height: 4px;
+  background: #21262d;
+  border-radius: 2px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+.progress-bar { height: 100%; background: #3fb950; width: 0; transition: width 0.3s; }
+
+.equation {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.tile {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.tile-sport {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #3fb950;
+  font-weight: 600;
+}
+
+.tile-label { font-size: 1rem; line-height: 1.35; flex: 1; }
+
+.tile input {
+  width: 100%;
+  background: #0d1117;
+  border: 2px solid #30363d;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.tile input:focus { outline: none; border-color: #58a6ff; }
+.tile input::-webkit-outer-spin-button,
+.tile input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tile input[type=number] { -moz-appearance: textfield; }
+
+.tile.correct { border-color: #3fb950; background: rgba(63, 185, 80, 0.08); }
+.tile.correct input { border-color: #3fb950; color: #3fb950; }
+.tile.wrong input { border-color: #f85149; animation: shake 0.3s; }
+.tile.revealed { border-color: #d29922; }
+.tile.revealed input { border-color: #d29922; color: #d29922; }
+
+.tile-note {
+  font-size: 0.78rem;
+  color: #8b949e;
+  line-height: 1.35;
+  display: none;
+}
+.tile.correct .tile-note, .tile.revealed .tile-note { display: block; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.op {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+}
+
+.maths-check {
+  text-align: center;
+  margin: 22px 0 6px;
+  min-height: 1.4em;
+  font-size: 0.95rem;
+  color: #8b949e;
+  font-variant-numeric: tabular-nums;
+}
+.maths-check.ok { color: #3fb950; }
+.maths-check.bad { color: #f85149; }
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+button {
+  background: #21262d;
+  color: #e0e0e0;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+button:hover { background: #30363d; }
+button.primary { background: #238636; border-color: #2ea043; color: #fff; }
+button.primary:hover { background: #2ea043; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+.hidden { display: none !important; }
+
+.summary { text-align: center; }
+.summary h2 { font-size: 1.8rem; margin-bottom: 8px; color: #3fb950; }
+.summary .final-score { font-size: 1.1rem; color: #8b949e; margin-bottom: 28px; }
+.summary-list { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.summary-row {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.88rem;
+}
+.summary-row .sum { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.summary-row .labels { color: #8b949e; }
+.summary-row .pts { color: #3fb950; font-weight: 600; white-space: nowrap; }
+
+.asof { text-align: center; color: #484f58; font-size: 0.75rem; margin-top: 36px; }
+
+@media (max-width: 720px) {
+  .equation { grid-template-columns: 1fr; }
+  .op { font-size: 1.8rem; min-height: 0; }
+  .tile { padding: 14px; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1><a href="../index.html">Sport Maths</a></h1>
+    <div class="stats">Question <strong id="qnum">1</strong> / <strong id="qtotal"></strong> &nbsp;·&nbsp; Score <strong id="score">0</strong></div>
+  </header>
+  <p class="intro">Three sporting numbers make a sum. Fill in all three. If you know two of them, the maths gives you the third.
+    Every number scores 3 points if right on your first check, 2 on your second, and 1 after that.</p>
+  <div class="progress"><div class="progress-bar" id="progress"></div></div>
+
+  <div id="game">
+    <div class="equation" id="equation"></div>
+    <div class="maths-check" id="maths-check"></div>
+    <div class="controls">
+      <button class="primary" id="check-btn">Check</button>
+      <button id="reveal-btn">Reveal</button>
+      <button class="primary hidden" id="next-btn">Next →</button>
+    </div>
+  </div>
+
+  <div id="summary" class="summary hidden">
+    <h2>Full time</h2>
+    <div class="final-score" id="final-score"></div>
+    <div class="summary-list" id="summary-list"></div>
+    <button class="primary" id="restart-btn">Play again</button>
+  </div>
+
+  <p class="asof">Facts correct as of October 2026</p>
+</div>
+
+<script>
+// Generated with tools/sport_maths/find_combos.py, hand-picked.
+const QUESTIONS = [
+  { op: '+', facts: [
+    { sport: 'Formula 1', label: "Lewis Hamilton's F1 World Championships", value: 7, note: '2008, 2014, 2015, 2017, 2018, 2019, 2020' },
+    { sport: 'Football', label: "Manchester City's Premier League titles", value: 8, note: '2012, 2014, 2018, 2019, 2021, 2022, 2023, 2024' },
+    { sport: 'Snooker', label: 'Red balls on a snooker table', value: 15, note: 'Plus six colours, making 22 balls with the cue ball' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Snooker', label: 'Pockets on a snooker table', value: 6, note: 'Four corners, two middles' },
+    { sport: 'Golf', label: "Tiger Woods's major titles", value: 15, note: '5 Masters, 4 PGA Championships, 3 US Opens, 3 Opens' },
+    { sport: 'Football', label: 'Minutes in a football match', value: 90, note: 'Two halves of 45, plus stoppage time' },
+  ]},
+  { op: '+', facts: [
+    { sport: 'Football', label: "Manchester United's Premier League titles", value: 13, note: 'All under Sir Alex Ferguson, the last in 2013' },
+    { sport: 'Rugby union', label: 'Points for a try in rugby union', value: 5, note: 'Raised from 4 to 5 in 1992' },
+    { sport: 'Golf', label: 'Holes on a full golf course', value: 18, note: 'St Andrews settled on 18 holes in 1764' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Golf', label: 'Holes on a full golf course', value: 18, note: '' },
+    { sport: 'Football', label: "Pelé's shirt number", value: 10, note: 'Brazil and Santos' },
+    { sport: 'Darts', label: 'Maximum score with three darts', value: 180, note: 'Three treble 20s' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Darts', label: 'Fewest darts needed to finish a 501 leg', value: 9, note: 'The nine-dart finish' },
+    { sport: 'Football', label: 'Players in a football team', value: 11, note: '' },
+    { sport: 'Ice hockey', label: "Wayne Gretzky's shirt number", value: 99, note: 'Retired across the whole NHL in 2000' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Tennis', label: 'Grand Slam tennis tournaments each year', value: 4, note: 'Australian Open, French Open, Wimbledon, US Open' },
+    { sport: 'Basketball', label: "Michael Jordan's shirt number", value: 23, note: 'He also wore 45 (and once 12)' },
+    { sport: 'Football', label: 'Clubs in the top four divisions of English football', value: 92, note: '20 in the Premier League + 72 in the EFL' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Snooker', label: 'Points for potting the black', value: 7, note: '' },
+    { sport: 'NFL', label: "Tom Brady's Super Bowl wins", value: 7, note: 'Six with New England, one with Tampa Bay' },
+    { sport: 'Football', label: "Arsenal's unbeaten league run (the Invincibles)", value: 49, note: 'May 2003 to October 2004' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Darts', label: 'Fewest darts needed to finish a 501 leg', value: 9, note: '' },
+    { sport: 'Athletics', label: "Usain Bolt's Olympic gold medals", value: 8, note: 'Nine won; one 4×100m relay gold was taken away in 2017' },
+    { sport: 'Golf', label: 'Par for a typical championship golf course', value: 72, note: '' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Cricket', label: 'Balls in a cricket over', value: 6, note: '' },
+    { sport: 'Darts', label: 'Points for a bullseye', value: 50, note: 'The outer bull is worth 25' },
+    { sport: 'Bowling', label: 'Perfect score in ten-pin bowling', value: 300, note: '12 strikes in a row' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Athletics', label: 'Whole miles in a marathon', value: 26, note: '26 miles 385 yards' },
+    { sport: 'Bowling', label: 'Pins in ten-pin bowling', value: 10, note: '' },
+    { sport: 'Football', label: "Alan Shearer's Premier League goals", value: 260, note: 'Still the Premier League record' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Football', label: "Lionel Messi's shirt number for Argentina", value: 10, note: '' },
+    { sport: 'Tennis', label: "A tennis player's score after winning three points in a game", value: 40, note: 'Love, 15, 30, 40' },
+    { sport: 'Cricket', label: "Brian Lara's record Test score", value: 400, note: '400 not out against England, Antigua 2004' },
+  ]},
+  { op: '+', facts: [
+    { sport: 'Snooker', label: 'Maximum snooker break', value: 147, note: '' },
+    { sport: 'Swimming', label: "Michael Phelps's Olympic gold medals", value: 23, note: 'Out of 28 Olympic medals' },
+    { sport: 'Darts', label: 'Highest possible checkout in darts', value: 170, note: 'Treble 20, treble 20, bullseye' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Darts', label: 'Points for a bullseye', value: 50, note: '' },
+    { sport: 'Cricket', label: "Sachin Tendulkar's international centuries", value: 100, note: '51 in Tests, 49 in ODIs' },
+    { sport: 'Football', label: "Leicester's odds of winning the 2015-16 Premier League (__-1)", value: 5000, note: 'And they won it' },
+  ]},
+  { op: '×', facts: [
+    { sport: 'Formula 1', label: "Lewis Hamilton's F1 World Championships", value: 7, note: '' },
+    { sport: 'Cycling', label: 'Stages in the Tour de France', value: 21, note: '' },
+    { sport: 'Snooker', label: 'Maximum snooker break', value: 147, note: '15 reds with 15 blacks, then all the colours' },
+  ]},
+];
+
+const OP_FN = { '+': (a, b) => a + b, '−': (a, b) => a - b, '×': (a, b) => a * b, '÷': (a, b) => a / b };
+
+const state = {
+  index: 0,
+  score: 0,
+  checks: 0,
+  solved: [false, false, false],
+  revealed: false,
+  history: [],
+};
+
+const $ = id => document.getElementById(id);
+
+function render() {
+  const q = QUESTIONS[state.index];
+  $('qnum').textContent = state.index + 1;
+  $('qtotal').textContent = QUESTIONS.length;
+  $('score').textContent = state.score;
+  $('progress').style.width = (state.index / QUESTIONS.length * 100) + '%';
+  $('maths-check').textContent = '';
+  $('maths-check').className = 'maths-check';
+
+  const eq = $('equation');
+  eq.innerHTML = '';
+  q.facts.forEach((f, i) => {
+    if (i === 1) eq.appendChild(opEl(q.op));
+    if (i === 2) eq.appendChild(opEl('='));
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.innerHTML = `
+      <div class="tile-sport">${f.sport}</div>
+      <div class="tile-label">${f.label}</div>
+      <input type="number" inputmode="numeric" autocomplete="off" aria-label="${f.label}">
+      <div class="tile-note">${f.note}</div>`;
+    const input = tile.querySelector('input');
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+    input.addEventListener('input', () => { tile.classList.remove('wrong'); updateMathsCheck(); });
+    eq.appendChild(tile);
+  });
+
+  $('check-btn').classList.remove('hidden');
+  $('reveal-btn').classList.remove('hidden');
+  $('next-btn').classList.add('hidden');
+  eq.querySelector('input').focus();
+}
+
+function opEl(sym) {
+  const el = document.createElement('div');
+  el.className = 'op';
+  el.textContent = sym;
+  return el;
+}
+
+function tiles() { return [...$('equation').querySelectorAll('.tile')]; }
+
+function readValues() {
+  return tiles().map(t => {
+    const v = t.querySelector('input').value.trim();
+    return v === '' ? null : Number(v);
+  });
+}
+
+// Tells the player whether their three numbers are at least consistent.
+function updateMathsCheck() {
+  const q = QUESTIONS[state.index];
+  const [a, b, c] = readValues();
+  const el = $('maths-check');
+  if (a === null || b === null || c === null) {
+    el.textContent = '';
+    el.className = 'maths-check';
+    return;
+  }
+  const result = OP_FN[q.op](a, b);
+  const ok = result === c;
+  el.textContent = ok ? `${a} ${q.op} ${b} = ${c} ✓ the maths works`
+                      : `${a} ${q.op} ${b} = ${+result.toFixed(2)}, not ${c}`;
+  el.className = 'maths-check ' + (ok ? 'ok' : 'bad');
+}
+
+function check() {
+  if (state.revealed || state.solved.every(Boolean)) return;
+  const q = QUESTIONS[state.index];
+  const values = readValues();
+  if (values.every(v => v === null)) return;
+  state.checks++;
+  const pts = Math.max(1, 4 - state.checks);
+
+  tiles().forEach((tile, i) => {
+    if (state.solved[i] || values[i] === null) return;
+    const input = tile.querySelector('input');
+    if (values[i] === q.facts[i].value) {
+      state.solved[i] = true;
+      state.score += pts;
+      tile.classList.add('correct');
+      input.disabled = true;
+    } else {
+      tile.classList.remove('wrong');
+      void tile.offsetWidth; // restart shake animation
+      tile.classList.add('wrong');
+    }
+  });
+
+  $('score').textContent = state.score;
+  if (state.solved.every(Boolean)) finishQuestion();
+  else tiles().find((t, i) => !state.solved[i]).querySelector('input').focus();
+}
+
+function reveal() {
+  const q = QUESTIONS[state.index];
+  state.revealed = true;
+  tiles().forEach((tile, i) => {
+    if (state.solved[i]) return;
+    const input = tile.querySelector('input');
+    input.value = q.facts[i].value;
+    input.disabled = true;
+    tile.classList.remove('wrong');
+    tile.classList.add('revealed');
+  });
+  finishQuestion();
+}
+
+function finishQuestion() {
+  const q = QUESTIONS[state.index];
+  const [a, b, c] = q.facts.map(f => f.value);
+  $('maths-check').textContent = `${a} ${q.op} ${b} = ${c}`;
+  $('maths-check').className = 'maths-check ok';
+  state.history.push({ q, solved: state.solved.filter(Boolean).length });
+  $('check-btn').classList.add('hidden');
+  $('reveal-btn').classList.add('hidden');
+  $('next-btn').classList.remove('hidden');
+  $('next-btn').focus();
+}
+
+function next() {
+  state.index++;
+  state.checks = 0;
+  state.solved = [false, false, false];
+  state.revealed = false;
+  if (state.index >= QUESTIONS.length) showSummary();
+  else render();
+}
+
+function showSummary() {
+  $('game').classList.add('hidden');
+  $('summary').classList.remove('hidden');
+  $('progress').style.width = '100%';
+  const max = QUESTIONS.length * 9;
+  $('final-score').textContent = `${state.score} / ${max} points`;
+  $('summary-list').innerHTML = state.history.map(({ q, solved }) => {
+    const [a, b, c] = q.facts;
+    return `<div class="summary-row">
+      <div><div class="sum">${a.value} ${q.op} ${b.value} = ${c.value}</div>
+      <div class="labels">${a.label} ${q.op} ${b.label} = ${c.label}</div></div>
+      <div class="pts">${solved}/3</div></div>`;
+  }).join('');
+}
+
+function restart() {
+  Object.assign(state, { index: 0, score: 0, checks: 0, solved: [false, false, false], revealed: false, history: [] });
+  $('summary').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  render();
+}
+
+$('check-btn').addEventListener('click', check);
+$('reveal-btn').addEventListener('click', reveal);
+$('next-btn').addEventListener('click', next);
+$('restart-btn').addEventListener('click', restart);
+
+render();
+</script>
+</body>
+</html>

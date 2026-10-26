@@ -1,6 +1,6 @@
 {
   "as_of": "2026-10-25",
-  "notes": "fame: 3 = most people know it, 2 = sports fans know it, 1 = deep cut. volatile = can change while the person is still active / each new season.",
+  "notes": "fame: 3 = most people know it, 2 = sports fans know it, 1 = deep cut. volatile = can change while the person is still active / each new season. women = women's sport fact.",
   "facts": [
     {"id": "snooker_max", "label": "Maximum snooker break", "value": 147, "sport": "snooker", "kind": "rule", "fame": 3},
     {"id": "snooker_max_free", "label": "Maximum snooker break with a free ball", "value": 155, "sport": "snooker", "kind": "rule", "fame": 1},
@@ -238,6 +238,17 @@
     {"id": "aussie_rules_team", "label": "Players on the field per Australian rules football team", "value": 18, "sport": "aussie rules", "kind": "rule", "fame": 1},
     {"id": "gaelic_team", "label": "Players in a Gaelic football team", "value": 15, "sport": "gaelic", "kind": "rule", "fame": 1},
     {"id": "curling_stones", "label": "Stones each curling team throws per end", "value": 8, "sport": "curling", "kind": "rule", "fame": 1},
-    {"id": "polo_team", "label": "Players in a polo team", "value": 4, "sport": "polo", "kind": "rule", "fame": 1}
+    {"id": "polo_team", "label": "Players in a polo team", "value": 4, "sport": "polo", "kind": "rule", "fame": 1},
+
+    {"id": "darts_single", "label": "Highest score with a single dart", "value": 60, "sport": "darts", "kind": "rule", "fame": 3},
+    {"id": "ledecky_golds", "label": "Katie Ledecky's Olympic gold medals", "value": 9, "sport": "swimming", "kind": "record", "fame": 1, "women": true, "volatile": true},
+    {"id": "laura_kenny_golds", "label": "Laura Kenny's Olympic gold medals", "value": 5, "sport": "cycling", "kind": "record", "fame": 2, "women": true},
+    {"id": "biles_golds", "label": "Simone Biles's Olympic gold medals", "value": 7, "sport": "gymnastics", "kind": "record", "fame": 2, "women": true, "volatile": true},
+    {"id": "red_roses_rwc", "label": "England women's (the Red Roses') Rugby World Cup wins", "value": 3, "sport": "rugby", "kind": "title", "fame": 2, "women": true, "volatile": true},
+    {"id": "lionesses_euros", "label": "England women's (the Lionesses') European Championship wins", "value": 2, "sport": "football", "kind": "title", "fame": 2, "women": true, "volatile": true},
+    {"id": "uswnt_wc", "label": "USA's Women's World Cup wins", "value": 4, "sport": "football", "kind": "title", "fame": 1, "women": true, "volatile": true},
+    {"id": "ellen_white_goals", "label": "Ellen White's goals for England", "value": 52, "sport": "football", "kind": "record", "fame": 1, "women": true},
+    {"id": "holmes_golds", "label": "Kelly Holmes's Olympic gold medals", "value": 2, "sport": "athletics", "kind": "record", "fame": 2, "women": true},
+    {"id": "wiegman_euros", "label": "Euros won by Sarina Wiegman as a manager", "value": 3, "sport": "football", "kind": "title", "fame": 1, "women": true, "volatile": true}
   ]
 }

@@ -1,0 +1,47 @@
+{
+  "puzzle_id": "uk_everyday_max_overlap_v2",
+  "grid": [
+    ["S", "N", "M", "Y"],
+    ["S", "B", "I", "H"],
+    ["S", "D", "A", "B"],
+    ["C", "B", "B", "Q"]
+  ],
+  "target_answers": [
+    {
+      "tla": "ABS",
+      "path": [[2,2],[1,1],[0,0]],
+      "clue": "Keeps your wheels turning when you press the pedal hard"
+    },
+    {
+      "tla": "MIA",
+      "path": [[0,2],[1,2],[2,2]],
+      "clue": "Vanished without trace — gone, nobody knows where"
+    },
+    {
+      "tla": "DIY",
+      "path": [[2,1],[1,2],[0,3]],
+      "clue": "Hammer, nails, and flat-pack furniture — no professionals needed"
+    },
+    {
+      "tla": "IBS",
+      "path": [[1,2],[1,1],[1,0]],
+      "clue": "Gut trouble that flares up when you're under pressure"
+    },
+    {
+      "tla": "DAB",
+      "path": [[2,1],[2,2],[2,3]],
+      "clue": "No static, no hiss — just crystal-clear UK radio"
+    },
+    {
+      "tla": "BBC",
+      "path": [[3,2],[3,1],[3,0]],
+      "clue": "Where the UK goes for news, Strictly, and EastEnders"
+    },
+    {
+      "tla": "BBQ",
+      "path": [[3,1],[3,2],[3,3]],
+      "clue": "Fire up the garden grill, sausages and summer await"
+    }
+  ],
+  "final_tla": "NHS"
+}

@@ -1,0 +1,57 @@
+{
+  "puzzle_id": "uk_everyday_9tla",
+  "grid": [
+    ["I", "A", "D", "H"],
+    ["C", "B", "B", "Q"],
+    ["N", "T", "S", "H"],
+    ["W", "S", "U", "T"]
+  ],
+  "target_answers": [
+    {
+      "tla": "BBC",
+      "path": [[1,2], [1,1], [1,0]],
+      "clue": "Licence-fee lot running iPlayer, Radio 4, and Newsnight"
+    },
+    {
+      "tla": "BBQ",
+      "path": [[1,1], [1,2], [1,3]],
+      "clue": "Tongs, charcoal, and sizzling meat in the garden"
+    },
+    {
+      "tla": "USB",
+      "path": [[3,2], [2,2], [1,2]],
+      "clue": "Rectangular port on every laptop and phone charger"
+    },
+    {
+      "tla": "IBS",
+      "path": [[0,0], [1,1], [2,2]],
+      "clue": "Crampy gut that flares when you're on edge"
+    },
+    {
+      "tla": "TSB",
+      "path": [[3,3], [2,2], [1,1]],
+      "clue": "Green and white lender, formerly part of Lloyds"
+    },
+    {
+      "tla": "DBS",
+      "path": [[0,2], [1,2], [2,2]],
+      "clue": "Criminal record check needed for teaching or care work"
+    },
+    {
+      "tla": "TBA",
+      "path": [[2,1], [1,1], [0,1]],
+      "clue": "Placeholder on event posters when details still pending"
+    },
+    {
+      "tla": "BTW",
+      "path": [[1,2], [2,1], [3,0]],
+      "clue": "Slipped into chats meaning 'oh, one more point'"
+    },
+    {
+      "tla": "TBH",
+      "path": [[2,1], [1,2], [0,3]],
+      "clue": "Prefaces a candid remark — 'I actually prefer dogs'"
+    }
+  ],
+  "final_tla": "NHS"
+}

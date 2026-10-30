@@ -1,0 +1,47 @@
+{
+  "puzzle_id": "uk_everyday_v3",
+  "grid": [
+    ["D", "I", "Y", "Q"],
+    ["W", "C", "A", "R"],
+    ["P", "F", "L", "N"],
+    ["K", "H", "H", "S"]
+  ],
+  "target_answers": [
+    {
+      "tla": "DIY",
+      "path": [[0,0], [0,1], [0,2]],
+      "clue": "Shelves, grouting, and a bank holiday with a power saw"
+    },
+    {
+      "tla": "LCD",
+      "path": [[2,2], [1,1], [0,0]],
+      "clue": "Flat screen technology that replaced the bulky tube TV"
+    },
+    {
+      "tla": "FAQ",
+      "path": [[2,1], [1,2], [0,3]],
+      "clue": "Predictable enquiries, pre-empted on every website"
+    },
+    {
+      "tla": "WFH",
+      "path": [[1,0], [2,1], [3,2]],
+      "clue": "Pyjamas till noon, laptop on the sofa — the pandemic's legacy"
+    },
+    {
+      "tla": "DWP",
+      "path": [[0,0], [1,0], [2,0]],
+      "clue": "Benefits office behind Universal Credit and state retirement"
+    },
+    {
+      "tla": "AFK",
+      "path": [[1,2], [2,1], [3,0]],
+      "clue": "Still logged in, but stepped out — not touching the computer"
+    },
+    {
+      "tla": "RAC",
+      "path": [[1,3], [1,2], [1,1]],
+      "clue": "Breakdown service — they'll tow you home when the engine quits"
+    }
+  ],
+  "final_tla": "NHS"
+}

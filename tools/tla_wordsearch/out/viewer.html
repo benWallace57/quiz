@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TLA Wordsearch</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, sans-serif;
+         display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+  h1 { margin: 0 0 4px; font-size: 1.8rem; }
+  .rule { color: #8b949e; font-style: italic; margin: 0 0 16px; text-align: center; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+  select, button, input { font: inherit; background: #161b22; color: #e6edf3;
+         border: 1px solid #30363d; border-radius: 6px; padding: 6px 12px; }
+  button { cursor: pointer; }
+  button:hover { border-color: #58a6ff; }
+  .grid { display: grid; grid-template-columns: repeat(4, 84px); gap: 6px; margin-bottom: 8px;
+          user-select: none; }
+  .cell { width: 84px; height: 84px; display: flex; align-items: center; justify-content: center;
+          font-size: 2.6rem; font-weight: 700; background: #161b22; border: 2px solid #30363d;
+          border-radius: 10px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .cell.sel { border-color: #58a6ff; background: #1f3a5f; }
+  .cell.used-1 { background: #23452f; }
+  .cell.used-2 { background: #2e6b40; }
+  .cell.used-3 { background: #3b8f53; }
+  .cell.leftover { background: #6b5a12; border-color: #f2cc60; }
+  .msg { min-height: 1.4em; margin-bottom: 10px; color: #8b949e; }
+  .msg.good { color: #3fb950; } .msg.bad { color: #f85149; }
+  ol { max-width: 560px; padding-left: 28px; margin: 0 0 16px; }
+  li { margin: 8px 0; line-height: 1.35; }
+  li.done { color: #6e7681; text-decoration: line-through; }
+  li .ans { display: none; font-weight: 700; color: #3fb950; margin-left: 6px;
+            text-decoration: none; display: none; }
+  li.done .ans { display: inline-block; }
+  .final { display: flex; gap: 8px; align-items: center; }
+  .final input { width: 90px; text-transform: uppercase; text-align: center; letter-spacing: 3px; }
+  @media print {
+    body { background: white; color: black; }
+    .controls, .msg, .final button, .final input { display: none; }
+    .cell { background: white !important; border-color: black; color: black; }
+    li.done { color: black; text-decoration: none; }
+    li .ans { display: none !important; }
+    .final::after { content: "_  _  _"; }
+  }
+</style>
+</head>
+<body>
+<h1>TLA Wordsearch</h1>
+<p class="rule">Find each three-letter acronym in a straight line. No word in a clue starts with any letter of its answer.<br>
+Click three cells in a line to cross one off. The three leftover cells spell the final TLA.</p>
+<div class="controls">
+  <select id="pick"></select>
+  <button id="reset">Reset</button>
+  <button id="reveal">Reveal all</button>
+</div>
+<div class="grid" id="grid"></div>
+<div class="msg" id="msg"></div>
+<ol id="clues"></ol>
+<div class="final"><span>Leftover letters spell:</span>
+  <input id="finalGuess" maxlength="3"><button id="finalBtn">Check</button></div>
+
+<script>
+const PUZZLES = [{"puzzle_id": "uk_everyday_02", "grid": [["V", "O", "D", "G"], ["D", "A", "B", "P"], ["I", "P", "T", "S"], ["M", "O", "T", "Y"]], "target_answers": [{"tla": "VAT", "path": [[0, 0], [1, 1], [2, 2]], "clue": "Invisible levy lurking in nearly everything you buy"}, {"tla": "GPS", "path": [[0, 3], [1, 3], [2, 3]], "clue": "How your mobile knows where you are"}, {"tla": "OAP", "path": [[0, 1], [1, 1], [2, 1]], "clue": "Retired folk who get free bus rides"}, {"tla": "DAB", "path": [[1, 0], [1, 1], [1, 2]], "clue": "No static, no hiss — just crystal-clear UK radio"}, {"tla": "MOT", "path": [[3, 0], [3, 1], [3, 2]], "clue": "Yearly garage check deciding if your car is still roadworthy"}, {"tla": "GBP", "path": [[0, 3], [1, 2], [2, 1]], "clue": "How sterling is written on foreign exchange screens"}, {"tla": "BPM", "path": [[1, 2], [2, 1], [3, 0]], "clue": "Your heartbeat's speed, shown on fitness watches and DJ decks"}], "final_tla": "DIY"}, {"puzzle_id": "uk_everyday_max_overlap", "grid": [["S", "N", "C", "Y"], ["F", "B", "I", "H"], ["S", "D", "A", "B"], ["C", "B", "B", "Q"]], "target_answers": [{"tla": "ABS", "path": [[2, 2], [1, 1], [0, 0]], "clue": "Keeps your wheels turning when you press the pedal hard"}, {"tla": "CIA", "path": [[0, 2], [1, 2], [2, 2]], "clue": "Hollywood's go-to US spy outfit, run from Langley"}, {"tla": "DIY", "path": [[2, 1], [1, 2], [0, 3]], "clue": "Hammer, nails, and flat-pack furniture — no professionals needed"}, {"tla": "FBI", "path": [[1, 0], [1, 1], [1, 2]], "clue": "US law enforcement — the domestic one, not the spy lot"}, {"tla": "DAB", "path": [[2, 1], [2, 2], [2, 3]], "clue": "No static, no hiss — just crystal-clear UK radio"}, {"tla": "BBC", "path": [[3, 2], [3, 1], [3, 0]], "clue": "Where the UK goes for news, Strictly, and EastEnders"}, {"tla": "BBQ", "path": [[3, 1], [3, 2], [3, 3]], "clue": "Fire up the garden grill, sausages and summer await"}], "final_tla": "NHS"}, {"puzzle_id": "uk_everyday_max_overlap_v2", "grid": [["S", "N", "M", "Y"], ["S", "B", "I", "H"], ["S", "D", "A", "B"], ["C", "B", "B", "Q"]], "target_answers": [{"tla": "ABS", "path": [[2, 2], [1, 1], [0, 0]], "clue": "Keeps your wheels turning when you press the pedal hard"}, {"tla": "MIA", "path": [[0, 2], [1, 2], [2, 2]], "clue": "Vanished without trace — gone, nobody knows where"}, {"tla": "DIY", "path": [[2, 1], [1, 2], [0, 3]], "clue": "Hammer, nails, and flat-pack furniture — no professionals needed"}, {"tla": "IBS", "path": [[1, 2], [1, 1], [1, 0]], "clue": "Gut trouble that flares up when you're under pressure"}, {"tla": "DAB", "path": [[2, 1], [2, 2], [2, 3]], "clue": "No static, no hiss — just crystal-clear UK radio"}, {"tla": "BBC", "path": [[3, 2], [3, 1], [3, 0]], "clue": "Where the UK goes for news, Strictly, and EastEnders"}, {"tla": "BBQ", "path": [[3, 1], [3, 2], [3, 3]], "clue": "Fire up the garden grill, sausages and summer await"}], "final_tla": "NHS"}, {"puzzle_id": "uk_everyday_9tla", "grid": [["I", "A", "D", "H"], ["C", "B", "B", "Q"], ["N", "T", "S", "H"], ["W", "S", "U", "T"]], "target_answers": [{"tla": "BBC", "path": [[1, 2], [1, 1], [1, 0]], "clue": "Licence-fee lot running iPlayer, Radio 4, and Newsnight"}, {"tla": "BBQ", "path": [[1, 1], [1, 2], [1, 3]], "clue": "Tongs, charcoal, and sizzling meat in the garden"}, {"tla": "USB", "path": [[3, 2], [2, 2], [1, 2]], "clue": "Rectangular port on every laptop and phone charger"}, {"tla": "IBS", "path": [[0, 0], [1, 1], [2, 2]], "clue": "Crampy gut that flares when you're on edge"}, {"tla": "TSB", "path": [[3, 3], [2, 2], [1, 1]], "clue": "Green and white lender, formerly part of Lloyds"}, {"tla": "DBS", "path": [[0, 2], [1, 2], [2, 2]], "clue": "Criminal record check needed for teaching or care work"}, {"tla": "TBA", "path": [[2, 1], [1, 1], [0, 1]], "clue": "Placeholder on event posters when details still pending"}, {"tla": "BTW", "path": [[1, 2], [2, 1], [3, 0]], "clue": "Slipped into chats meaning 'oh, one more point'"}, {"tla": "TBH", "path": [[2, 1], [1, 2], [0, 3]], "clue": "Prefaces a candid remark — 'I actually prefer dogs'"}], "final_tla": "NHS"}, {"puzzle_id": "uk_everyday_v3", "grid": [["D", "I", "Y", "Q"], ["W", "C", "A", "R"], ["P", "F", "L", "N"], ["K", "H", "H", "S"]], "target_answers": [{"tla": "DIY", "path": [[0, 0], [0, 1], [0, 2]], "clue": "Shelves, grouting, and a bank holiday with a power saw"}, {"tla": "LCD", "path": [[2, 2], [1, 1], [0, 0]], "clue": "Flat screen technology that replaced the bulky tube TV"}, {"tla": "FAQ", "path": [[2, 1], [1, 2], [0, 3]], "clue": "Predictable enquiries, pre-empted on every website"}, {"tla": "WFH", "path": [[1, 0], [2, 1], [3, 2]], "clue": "Pyjamas till noon, laptop on the sofa — the pandemic's legacy"}, {"tla": "DWP", "path": [[0, 0], [1, 0], [2, 0]], "clue": "Benefits office behind Universal Credit and state retirement"}, {"tla": "AFK", "path": [[1, 2], [2, 1], [3, 0]], "clue": "Still logged in, but stepped out — not touching the computer"}, {"tla": "RAC", "path": [[1, 3], [1, 2], [1, 1]], "clue": "Breakdown service — they'll tow you home when the engine quits"}], "final_tla": "NHS"}, {"puzzle_id": "uk_everyday_v3b", "grid": [["K", "P", "W", "D"], ["A", "F", "C", "I"], ["H", "L", "A", "Y"], ["T", "M", "R", "Q"]], "target_answers": [{"tla": "WFH", "path": [[0, 2], [1, 1], [2, 0]], "clue": "Pyjamas till noon, laptop on the sofa — the pandemic's legacy"}, {"tla": "RAC", "path": [[3, 2], [2, 2], [1, 2]], "clue": "Breakdown service — they'll tow you home when the engine quits"}, {"tla": "AFK", "path": [[2, 2], [1, 1], [0, 0]], "clue": "Still logged in, but stepped out — not touching the computer"}, {"tla": "LCD", "path": [[2, 1], [1, 2], [0, 3]], "clue": "Flat screen technology that replaced the bulky tube TV"}, {"tla": "DWP", "path": [[0, 3], [0, 2], [0, 1]], "clue": "Benefits office behind Universal Credit and state retirement"}, {"tla": "DIY", "path": [[0, 3], [1, 3], [2, 3]], "clue": "Shelves, grouting, and a bank holiday with a power saw"}, {"tla": "FAQ", "path": [[1, 1], [2, 2], [3, 3]], "clue": "Predictable enquiries, pre-empted on every website"}], "final_tla": "ATM"}];
+const state = { p: null, found: new Set(), sel: [] };
+const $ = id => document.getElementById(id);
+const key = cells => cells.map(c => c.join(",")).sort().join("|");
+
+function load(i) {
+  state.p = PUZZLES[i]; state.found = new Set(); state.sel = [];
+  $("msg").textContent = ""; $("msg").className = "msg"; $("finalGuess").value = "";
+  render();
+}
+
+function render() {
+  const p = state.p, counts = {};
+  for (const i of state.found)
+    for (const c of p.target_answers[i].path) counts[c.join(",")] = (counts[c.join(",")] || 0) + 1;
+  const allFound = state.found.size === p.target_answers.length;
+  const g = $("grid"); g.innerHTML = "";
+  p.grid.forEach((row, r) => row.forEach((ch, c) => {
+    const el = document.createElement("div"), k = r + "," + c;
+    el.className = "cell";
+    if (counts[k]) el.classList.add("used-" + Math.min(counts[k], 3));
+    else if (allFound) el.classList.add("leftover");
+    if (state.sel.some(s => s[0] === r && s[1] === c)) el.classList.add("sel");
+    el.textContent = ch;
+    el.onclick = () => clickCell(r, c);
+    g.appendChild(el);
+  }));
+  const ol = $("clues"); ol.innerHTML = "";
+  p.target_answers.forEach((t, i) => {
+    const li = document.createElement("li");
+    li.textContent = t.clue + " ";
+    const a = document.createElement("span"); a.className = "ans"; a.textContent = t.tla;
+    li.appendChild(a);
+    if (state.found.has(i)) li.classList.add("done");
+    ol.appendChild(li);
+  });
+}
+
+function say(text, cls) { $("msg").textContent = text; $("msg").className = "msg " + (cls || ""); }
+
+function clickCell(r, c) {
+  const idx = state.sel.findIndex(s => s[0] === r && s[1] === c);
+  if (idx >= 0) state.sel.splice(idx, 1); else state.sel.push([r, c]);
+  if (state.sel.length === 3) {
+    const k = key(state.sel);
+    const hit = state.p.target_answers.findIndex(t => key(t.path) === k);
+    if (hit >= 0 && !state.found.has(hit)) {
+      state.found.add(hit);
+      say(`Found ${state.p.target_answers[hit].tla}!`, "good");
+      if (state.found.size === state.p.target_answers.length)
+        say("All found! What do the leftover letters spell?", "good");
+    } else if (hit >= 0) say("Already found that one.");
+    else say("Not one of the answers.", "bad");
+    state.sel = [];
+  } else say("");
+  render();
+}
+
+PUZZLES.forEach((p, i) => $("pick").add(new Option(p.puzzle_id, i)));
+$("pick").onchange = e => load(+e.target.value);
+$("reset").onclick = () => load(+$("pick").value);
+$("reveal").onclick = () => {
+  state.p.target_answers.forEach((_, i) => state.found.add(i)); state.sel = [];
+  say(`Final TLA: ${state.p.final_tla}`, "good"); render();
+};
+$("finalBtn").onclick = () => {
+  const g = $("finalGuess").value.trim().toUpperCase();
+  if (g === state.p.final_tla) say(`Yes, ${g}! Solved.`, "good");
+  else say("Not quite.", "bad");
+};
+load(PUZZLES.length - 1);
+$("pick").value = PUZZLES.length - 1;
+</script>
+</body>
+</html>

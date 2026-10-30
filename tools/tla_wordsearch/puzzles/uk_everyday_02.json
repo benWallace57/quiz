@@ -1,0 +1,47 @@
+{
+  "puzzle_id": "uk_everyday_02",
+  "grid": [
+    ["V", "O", "D", "G"],
+    ["D", "A", "B", "P"],
+    ["I", "P", "T", "S"],
+    ["M", "O", "T", "Y"]
+  ],
+  "target_answers": [
+    {
+      "tla": "VAT",
+      "path": [[0,0],[1,1],[2,2]],
+      "clue": "Invisible levy lurking in nearly everything you buy"
+    },
+    {
+      "tla": "GPS",
+      "path": [[0,3],[1,3],[2,3]],
+      "clue": "How your mobile knows where you are"
+    },
+    {
+      "tla": "OAP",
+      "path": [[0,1],[1,1],[2,1]],
+      "clue": "Retired folk who get free bus rides"
+    },
+    {
+      "tla": "DAB",
+      "path": [[1,0],[1,1],[1,2]],
+      "clue": "No static, no hiss — just crystal-clear UK radio"
+    },
+    {
+      "tla": "MOT",
+      "path": [[3,0],[3,1],[3,2]],
+      "clue": "Yearly garage check deciding if your car is still roadworthy"
+    },
+    {
+      "tla": "GBP",
+      "path": [[0,3],[1,2],[2,1]],
+      "clue": "How sterling is written on foreign exchange screens"
+    },
+    {
+      "tla": "BPM",
+      "path": [[1,2],[2,1],[3,0]],
+      "clue": "Your heartbeat's speed, shown on fitness watches and DJ decks"
+    }
+  ],
+  "final_tla": "DIY"
+}

@@ -52,16 +52,6 @@
             color: #8b949e;
             font-size: 0.9em;
         }
-        .duration-input {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 4px;
-            color: #e6edf3;
-            padding: 4px 8px;
-            width: 60px;
-            font-size: 0.9em;
-            text-align: center;
-        }
         .stop-btn {
             background: #30363d;
             color: #e6edf3;
@@ -265,11 +255,9 @@
     <p class="subtitle">Two songs, one track. Name both to score 2 points.</p>
 
     <div class="master-controls">
-        <label>Clip length:</label>
-        <input type="number" class="duration-input" id="clipLength" value="20" min="5" max="120" step="5">
-        <label>s</label>
-        <button class="stop-btn" style="margin-left:auto" onclick="exportOffsets()">Export Offsets</button>
-        <button class="stop-btn" onclick="resetOffsets()">Reset Offsets</button>
+        <label>Each clip has its own start time and length.</label>
+        <button class="stop-btn" style="margin-left:auto" onclick="exportClips()">Export Clip Settings</button>
+        <button class="stop-btn" onclick="resetClips()">Reset Clip Settings</button>
     </div>
     <pre id="exportOutput" style="display:none;max-width:900px;margin:0 auto 16px;padding:12px 16px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:0.85em;white-space:pre-wrap;cursor:pointer;" onclick="navigator.clipboard.writeText(this.textContent);this.style.borderColor='#238636';setTimeout(()=>this.style.borderColor='#30363d',1000)"></pre>
 
@@ -277,67 +265,84 @@
 
     <script>
     // offset = clip start time, in seconds into the track.
+    // length = how many seconds Play Clip plays for.
     const QUESTIONS = [
-        {
-            id: 'H82j1NZfVoU',
-            offset: 23,
-            answer: 'Thomas the Tank Engine + The Fresh Prince of Bel-Air'
-        },
         {
             id: 'fKyb3UXLXJg',
             offset: 14,
+            length: 20,
             answer: 'Toxic (Britney Spears) + Rolling in the Deep (Adele)'
         },
         {
             id: 'qwAfzYcXgXc',
             offset: 10,
+            length: 20,
             answer: 'Seven Nation Army (The White Stripes) + Sweet Dreams (Eurythmics)'
         },
         {
             id: 'eIf3b6meriM',
             offset: 0,
+            length: 20,
             answer: 'Baby (Justin Bieber) + Psychosocial (Slipknot)'
         },
         {
             id: 'DmtP1fbmIsQ',
             offset: 0,
+            length: 20,
             answer: 'Thunderstruck (AC/DC) + Ghostbusters (Ray Parker Jr.)'
         },
         {
             id: 'yJUHIWB73zU',
             offset: 0,
+            length: 20,
             answer: '22 (Taylor Swift) + Party in the U.S.A. (Miley Cyrus)'
         },
         {
             id: 'z8gHMJjDVYA',
             offset: 15,
+            length: 20,
             answer: 'Firework (Katy Perry) + Pompeii (Bastille)'
         },
         {
             id: 'NN75im_us4k',
             offset: 20,
+            length: 20,
             answer: 'Smells Like Teen Spirit (Nirvana) + Never Gonna Give You Up (Rick Astley)'
         },
         {
             id: 'QmahTV5LOs4',
             offset: 49,
+            length: 20,
             answer: 'Shape of You (Ed Sheeran) + Fireflies (Owl City)'
         },
         {
             id: 'd4YgnmpTtEc',
             offset: 5,
+            length: 20,
             answer: 'Boulevard of Broken Dreams (Green Day) + Let It Go (Frozen)'
+        },
+        {
+            id: 'H82j1NZfVoU',
+            offset: 23,
+            length: 20,
+            answer: 'Thomas the Tank Engine + The Fresh Prince of Bel-Air'
         }
     ];
 
-    // Offsets tweaked on the page survive a reload on this device.
-    // Use Export Offsets and paste the values above to make them permanent.
-    const STORAGE_KEY = 'mashup-quiz-offsets';
-    const DEFAULT_OFFSETS = Object.fromEntries(QUESTIONS.map(q => [q.id, q.offset]));
+    // Start times and lengths tweaked on the page survive a reload on this
+    // device. Use Export Clip Settings and paste the values above to make
+    // them permanent.
+    const STORAGE_KEY = 'mashup-quiz-clips';
+    const OLD_STORAGE_KEY = 'mashup-quiz-offsets'; // {id: offset}, before per-clip lengths
+    const DEFAULTS = Object.fromEntries(QUESTIONS.map(q => [q.id, { offset: q.offset, length: q.length }]));
     try {
+        const old = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || '{}');
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         for (const q of QUESTIONS) {
-            if (typeof saved[q.id] === 'number') q.offset = saved[q.id];
+            if (typeof old[q.id] === 'number') q.offset = old[q.id];
+            const s = saved[q.id] || {};
+            if (typeof s.offset === 'number') q.offset = s.offset;
+            if (typeof s.length === 'number') q.length = s.length;
         }
     } catch (e) {}
 
@@ -355,10 +360,6 @@
         if (!isFinite(s)) s = 0;
         const m = Math.floor(s / 60);
         return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-    }
-
-    function getClipLength() {
-        return parseFloat(document.getElementById('clipLength').value) || 20;
     }
 
     function getQ(id) {
@@ -438,8 +439,8 @@
         const q = getQ(id);
         const elapsed = audio.currentTime - q.offset;
         const bar = el('progress-key', id);
-        bar.style.width = Math.max(0, Math.min(100, (elapsed / getClipLength()) * 100)) + '%';
-        if (elapsed >= getClipLength()) audio.pause();
+        bar.style.width = Math.max(0, Math.min(100, (elapsed / q.length) * 100)) + '%';
+        if (elapsed >= q.length) audio.pause();
     }
 
     function updateTrack(id) {
@@ -456,7 +457,7 @@
         const win = el('clipwin', id);
         if (!win || !audio.duration) return;
         const q = getQ(id);
-        const end = Math.min(audio.duration, q.offset + getClipLength());
+        const end = Math.min(audio.duration, q.offset + q.length);
         win.style.left = (q.offset / audio.duration * 100) + '%';
         win.style.width = ((end - q.offset) / audio.duration * 100) + '%';
     }
@@ -516,17 +517,26 @@
         });
     }
 
-    // ---- Offsets ----
+    // ---- Clip start times and lengths ----
 
-    function saveOffsets() {
+    const MIN_LENGTH = 1;
+    const MAX_LENGTH = 120;
+
+    function saveClips() {
         const changed = {};
         for (const q of QUESTIONS) {
-            if (q.offset !== DEFAULT_OFFSETS[q.id]) changed[q.id] = q.offset;
+            const d = DEFAULTS[q.id];
+            if (q.offset !== d.offset || q.length !== d.length) {
+                changed[q.id] = { offset: q.offset, length: q.length };
+            }
         }
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(changed)); } catch (e) {}
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(changed));
+            localStorage.removeItem(OLD_STORAGE_KEY);
+        } catch (e) {}
     }
 
-    function setOffset(id, value) {
+    function setOffset(id, value, save = true) {
         const q = getQ(id);
         const audio = state.audio[id];
         const duration = audio.duration || Infinity;
@@ -535,32 +545,51 @@
         // Move the playhead to the new start unless the track is playing.
         if (audio.paused && audio.readyState > 0) audio.currentTime = q.offset;
         updateClipWindow(id);
-        saveOffsets();
+        if (save) saveClips();
+    }
+
+    function setLength(id, value, save = true) {
+        const q = getQ(id);
+        q.length = Math.max(MIN_LENGTH, Math.min(MAX_LENGTH, Math.round(value)));
+        el('length-key', id).textContent = q.length + 's';
+        updateClipWindow(id);
+        if (save) saveClips();
     }
 
     function adjustOffset(id, delta) {
         setOffset(id, getQ(id).offset + delta);
     }
 
+    function adjustLength(id, delta) {
+        setLength(id, getQ(id).length + delta);
+    }
+
     function useCurrentTime(id) {
         setOffset(id, state.audio[id].currentTime);
     }
 
-    function resetOffsets() {
-        if (!confirm('Reset all clip start times to the defaults in the file?')) return;
-        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-        for (const q of QUESTIONS) setOffset(q.id, DEFAULT_OFFSETS[q.id]);
+    function resetClips() {
+        if (!confirm('Reset all clip start times and lengths to the defaults in the file?')) return;
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(OLD_STORAGE_KEY);
+        } catch (e) {}
+        for (const q of QUESTIONS) {
+            setOffset(q.id, DEFAULTS[q.id].offset, false);
+            setLength(q.id, DEFAULTS[q.id].length, false);
+        }
     }
 
-    function exportOffsets() {
+    function exportClips() {
         const lines = QUESTIONS.map((q, i) =>
-            `Mashup ${i + 1} (${q.answer}): id '${q.id}', offset: ${q.offset}`
+            `Mashup ${i + 1} (${q.answer}): id '${q.id}', offset: ${q.offset}, length: ${q.length}`
         );
         const out = document.getElementById('exportOutput');
         out.textContent = lines.join('\n');
         out.style.display = 'block';
         navigator.clipboard.writeText(out.textContent).catch(() => {});
     }
+
     // ---- Answers ----
 
     function toggleAnswer(id) {
@@ -605,14 +634,19 @@
                     <div class="progress-bar-container">
                         <div class="progress-bar" data-progress-key="${q.id}"></div>
                     </div>
+                    <div class="offset-controls" title="How long Play Clip plays for">
+                        <span class="label">Length</span>
+                        <button class="offset-btn" onclick="adjustLength('${q.id}', -5)">-5</button>
+                        <button class="offset-btn" onclick="adjustLength('${q.id}', -1)">-1</button>
+                        <span class="offset-display" data-length-key="${q.id}">${q.length}s</span>
+                        <button class="offset-btn" onclick="adjustLength('${q.id}', 1)">+1</button>
+                        <button class="offset-btn" onclick="adjustLength('${q.id}', 5)">+5</button>
+                    </div>
                 </div>
             `;
             container.appendChild(card);
             setupTimeline(q.id);
             setupAudio(q);
-        });
-        document.getElementById('clipLength').addEventListener('input', () => {
-            QUESTIONS.forEach(q => updateClipWindow(q.id));
         });
     }
 

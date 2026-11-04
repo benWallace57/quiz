@@ -21,3 +21,6 @@ tools/pokemon_quiz_data.json
 tools/the_breaking_bad_network/
 tools/test.py
 tools/.ffmpeg/
+
+# Mashup quiz audio is served from GitHub Pages
+!quizzes/mashup_audio/*.m4a

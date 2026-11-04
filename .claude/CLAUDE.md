@@ -59,7 +59,7 @@ quiz/
 - `tools/mixer.html` — Browser-based mixer (search, waveforms, offset, speed, export)
 - `tools/generate_music_quiz.py` — generates pitch-scramble quiz data
 - `tools/generate_vocal_swap.py` — standalone vocal swap pipeline
-- `tools/download_mashup_audio.py` — yt-dlp download of every video ID in `mashup.html` to `quizzes/mashup_audio/<id>.m4a` (gitignored)
+- `tools/download_mashup_audio.py` — yt-dlp download of every video ID in `mashup.html` to `quizzes/mashup_audio/<id>.m4a` (committed, served from GitHub Pages)
 
 ## Data generation
 

@@ -47,6 +47,7 @@ quiz/
 | `quizzes/harry-potter.html` | Network graph | Harry Potter characters |
 | `quizzes/eurovision.html` | Network graph | Eurovision |
 | `quizzes/music.html` | Audio mashup | Song recognition from pitch-scrambled mashups |
+| `quizzes/mashup.html` | Audio clips | Name both songs in YouTube mashups (local audio in `quizzes/mashup_audio/`) |
 
 ## Tools
 
@@ -58,6 +59,7 @@ quiz/
 - `tools/mixer.html` — Browser-based mixer (search, waveforms, offset, speed, export)
 - `tools/generate_music_quiz.py` — generates pitch-scramble quiz data
 - `tools/generate_vocal_swap.py` — standalone vocal swap pipeline
+- `tools/download_mashup_audio.py` — yt-dlp download of every video ID in `mashup.html` to `quizzes/mashup_audio/<id>.m4a` (gitignored)
 
 ## Data generation
 

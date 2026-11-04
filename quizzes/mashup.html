@@ -146,19 +146,78 @@
             text-align: center;
             color: #f0883e;
         }
-        .player-frame {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #000;
+        .track {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
             border-radius: 8px;
-            overflow: hidden;
         }
-        .player-frame iframe {
+        .track-toggle {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .track-toggle:hover { background: #30363d; }
+        .track-time {
+            flex-shrink: 0;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #8b949e;
+            min-width: 92px;
+            text-align: center;
+        }
+        .timeline {
+            position: relative;
+            flex: 1;
+            height: 28px;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .timeline::before {
+            content: '';
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            left: 0; right: 0; top: 12px;
+            height: 4px;
+            background: #30363d;
+            border-radius: 2px;
+        }
+        .timeline-clip {
+            position: absolute;
+            top: 6px;
+            height: 16px;
+            background: rgba(240, 136, 62, 0.25);
+            border: 1px solid rgba(240, 136, 62, 0.6);
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        .timeline-head {
+            position: absolute;
+            top: 2px;
+            width: 2px;
+            height: 24px;
+            margin-left: -1px;
+            background: #e6edf3;
+            border-radius: 1px;
+            pointer-events: none;
+        }
+        .track-error {
+            color: #f85149;
+            font-size: 0.9em;
+        }
+        .track-error code {
+            background: #21262d;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
         .card-footer {
             display: flex;
@@ -217,7 +276,7 @@
     <div id="questions"></div>
 
     <script>
-    // offset = clip start time, in seconds into the YouTube video.
+    // offset = clip start time, in seconds into the track.
     const QUESTIONS = [
         {
             id: 'H82j1NZfVoU',
@@ -267,15 +326,18 @@
         }
     } catch (e) {}
 
+    // Audio comes from mashup_audio/<id>.m4a — fetch it with
+    // `python3 tools/download_mashup_audio.py`.
+    const AUDIO_DIR = 'mashup_audio';
+
     const state = {
-        players: {},
+        audio: {},           // id -> HTMLAudioElement
         clipId: null,        // question whose timed clip is running
-        clipStartedAt: null, // wall clock time the clip actually started playing
-        stopTimer: null,
-        progressInterval: null
+        raf: null
     };
 
     function fmtTime(s) {
+        if (!isFinite(s)) s = 0;
         const m = Math.floor(s / 60);
         return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
     }
@@ -284,78 +346,159 @@
         return parseFloat(document.getElementById('clipLength').value) || 20;
     }
 
-    // ---- YouTube players ----
-
-    function onYouTubeIframeAPIReady() {
-        for (const q of QUESTIONS) {
-            state.players[q.id] = new YT.Player(`player_${q.id}`, {
-                videoId: q.id,
-                playerVars: { start: q.offset, playsinline: 1, rel: 0 },
-                events: { onStateChange: e => onPlayerStateChange(q.id, e) }
-            });
-        }
+    function getQ(id) {
+        return QUESTIONS.find(q => q.id === id);
     }
 
-    function onPlayerStateChange(id, e) {
-        if (e.data === YT.PlayerState.PLAYING) {
-            // Only one mashup audible at a time.
-            for (const otherId in state.players) {
-                if (otherId !== id) state.players[otherId].pauseVideo?.();
-            }
-            document.querySelectorAll('.question-card.active').forEach(el => el.classList.remove('active'));
-            document.querySelector(`[data-card="${id}"]`).classList.add('active');
+    const el = (attr, id) => document.querySelector(`[data-${attr}="${id}"]`);
 
-            // Start the clip timer only once audio is actually playing,
-            // so buffering doesn't eat into the clip.
-            if (state.clipId === id && state.clipStartedAt === null) {
-                state.clipStartedAt = Date.now();
-                const duration = getClipLength();
-                const bar = document.querySelector(`[data-progress-key="${id}"]`);
-                state.progressInterval = setInterval(() => {
-                    const elapsed = (Date.now() - state.clipStartedAt) / 1000;
-                    if (bar) bar.style.width = Math.min(100, (elapsed / duration) * 100) + '%';
-                }, 100);
-                state.stopTimer = setTimeout(() => {
-                    state.players[id].pauseVideo();
-                    endClip();
-                }, duration * 1000);
-            }
-        } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
-            if (state.clipId === id && state.clipStartedAt !== null) endClip();
+    // ---- Audio players ----
+
+    function setupAudio(q) {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        state.audio[q.id] = audio;
+
+        audio.addEventListener('loadedmetadata', () => {
+            audio.currentTime = q.offset;
+            updateClipWindow(q.id);
+            updateTrack(q.id);
+        });
+        audio.addEventListener('play', () => onPlay(q.id));
+        audio.addEventListener('pause', () => onPause(q.id));
+        audio.addEventListener('ended', () => onPause(q.id));
+        audio.addEventListener('seeked', () => updateTrack(q.id));
+        // Backup for the animation loop, which browsers throttle in background tabs.
+        audio.addEventListener('timeupdate', () => checkClipEnd(q.id));
+        const fail = () => {
+            el('track', q.id).innerHTML = `<span class="track-error">Audio file missing &mdash;
+                run <code>python3 tools/download_mashup_audio.py</code></span>`;
+        };
+        audio.addEventListener('error', fail);
+
+        // Load the whole file into memory first: `python3 -m http.server`
+        // doesn't support range requests, so streamed audio can't seek.
+        el('time', q.id).textContent = 'Loading…';
+        fetch(`${AUDIO_DIR}/${q.id}.m4a`)
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+            .then(blob => { audio.src = URL.createObjectURL(blob); })
+            .catch(fail);
+    }
+
+    function onPlay(id) {
+        // Only one mashup audible at a time.
+        for (const otherId in state.audio) {
+            if (otherId !== id) state.audio[otherId].pause();
         }
+        document.querySelectorAll('.question-card.active').forEach(c => c.classList.remove('active'));
+        el('card', id).classList.add('active');
+        el('toggle', id).innerHTML = '&#10074;&#10074;';
+        startLoop();
+    }
+
+    function onPause(id) {
+        el('toggle', id).innerHTML = '&#9654;';
+        if (state.clipId === id) endClip();
+        updateTrack(id);
+    }
+
+    function startLoop() {
+        if (state.raf) return;
+        const tick = () => {
+            let anyPlaying = false;
+            for (const id in state.audio) {
+                if (state.audio[id].paused) continue;
+                anyPlaying = true;
+                checkClipEnd(id);
+                updateTrack(id);
+            }
+            state.raf = anyPlaying ? requestAnimationFrame(tick) : null;
+        };
+        state.raf = requestAnimationFrame(tick);
+    }
+
+    function checkClipEnd(id) {
+        if (state.clipId !== id) return;
+        const audio = state.audio[id];
+        const q = getQ(id);
+        const elapsed = audio.currentTime - q.offset;
+        const bar = el('progress-key', id);
+        bar.style.width = Math.max(0, Math.min(100, (elapsed / getClipLength()) * 100)) + '%';
+        if (elapsed >= getClipLength()) audio.pause();
+    }
+
+    function updateTrack(id) {
+        const audio = state.audio[id];
+        const time = el('time', id);
+        const head = el('head', id);
+        if (!time || !head) return;
+        time.textContent = `${fmtTime(audio.currentTime)} / ${fmtTime(audio.duration)}`;
+        if (audio.duration) head.style.left = (audio.currentTime / audio.duration * 100) + '%';
+    }
+
+    function updateClipWindow(id) {
+        const audio = state.audio[id];
+        const win = el('clipwin', id);
+        if (!win || !audio.duration) return;
+        const q = getQ(id);
+        const end = Math.min(audio.duration, q.offset + getClipLength());
+        win.style.left = (q.offset / audio.duration * 100) + '%';
+        win.style.width = ((end - q.offset) / audio.duration * 100) + '%';
     }
 
     function endClip() {
-        clearTimeout(state.stopTimer);
-        clearInterval(state.progressInterval);
-        state.stopTimer = null;
-        state.progressInterval = null;
-        state.clipStartedAt = null;
+        const id = state.clipId;
         state.clipId = null;
-        document.querySelectorAll('.play-all-btn.playing').forEach(el => {
-            el.classList.remove('playing');
-            el.innerHTML = '&#9654; Play Clip';
-        });
-        document.querySelectorAll('.progress-bar').forEach(el => el.style.width = '0%');
+        if (!id) return;
+        const btn = el('play', id);
+        btn.classList.remove('playing');
+        btn.innerHTML = '&#9654; Play Clip';
+        el('progress-key', id).style.width = '0%';
     }
 
     function playClip(id) {
-        const player = state.players[id];
-        if (!player || !player.seekTo) return;
-        const wasPlaying = state.clipId === id;
-        if (state.clipId) {
-            state.players[state.clipId].pauseVideo();
-            endClip();
+        const audio = state.audio[id];
+        if (!audio.duration) return; // still loading
+        if (state.clipId === id) {
+            audio.pause();
+            return;
         }
-        if (wasPlaying) return;
+        if (state.clipId) state.audio[state.clipId].pause();
 
-        const q = QUESTIONS.find(q => q.id === id);
         state.clipId = id;
-        const btn = document.querySelector(`[data-play="${id}"]`);
+        const btn = el('play', id);
         btn.classList.add('playing');
         btn.innerHTML = '&#9632; Stop';
-        player.seekTo(q.offset, true);
-        player.playVideo();
+        audio.currentTime = getQ(id).offset;
+        audio.play().catch(() => endClip());
+    }
+
+    // Free play/pause from the current position (handy for finding offsets).
+    function togglePlay(id) {
+        const audio = state.audio[id];
+        if (audio.paused) audio.play().catch(() => {});
+        else audio.pause();
+    }
+
+    function setupTimeline(id) {
+        const timeline = el('timeline', id);
+        const seek = e => {
+            const audio = state.audio[id];
+            if (!audio.duration) return;
+            const r = timeline.getBoundingClientRect();
+            const frac = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+            // Scrubbing turns a timed clip into free playback.
+            if (state.clipId === id) endClip();
+            audio.currentTime = frac * audio.duration;
+            updateTrack(id);
+        };
+        timeline.addEventListener('pointerdown', e => {
+            timeline.setPointerCapture(e.pointerId);
+            seek(e);
+        });
+        timeline.addEventListener('pointermove', e => {
+            if (timeline.hasPointerCapture(e.pointerId)) seek(e);
+        });
     }
 
     // ---- Offsets ----
@@ -369,36 +512,23 @@
     }
 
     function setOffset(id, value) {
-        const q = QUESTIONS.find(q => q.id === id);
-        const duration = state.players[id]?.getDuration?.() || Infinity;
+        const q = getQ(id);
+        const audio = state.audio[id];
+        const duration = audio.duration || Infinity;
         q.offset = Math.max(0, Math.min(Math.floor(duration) - 1, Math.round(value)));
-        document.querySelector(`[data-offset-key="${id}"]`).textContent = fmtTime(q.offset);
-        moveToOffset(id);
+        el('offset-key', id).textContent = fmtTime(q.offset);
+        // Move the playhead to the new start unless the track is playing.
+        if (audio.paused && audio.readyState > 0) audio.currentTime = q.offset;
+        updateClipWindow(id);
         saveOffsets();
     }
 
-    // seekTo() would start an unstarted/cued video, so only seek once it has
-    // been played; otherwise re-cue it at the new start point.
-    function moveToOffset(id) {
-        const player = state.players[id];
-        if (!player || !player.getPlayerState) return;
-        const q = QUESTIONS.find(q => q.id === id);
-        const s = player.getPlayerState();
-        if (s === YT.PlayerState.PLAYING || s === YT.PlayerState.PAUSED || s === YT.PlayerState.BUFFERING) {
-            player.seekTo(q.offset, true);
-        } else {
-            player.cueVideoById({ videoId: id, startSeconds: q.offset });
-        }
-    }
-
     function adjustOffset(id, delta) {
-        const q = QUESTIONS.find(q => q.id === id);
-        setOffset(id, q.offset + delta);
+        setOffset(id, getQ(id).offset + delta);
     }
 
     function useCurrentTime(id) {
-        const t = state.players[id]?.getCurrentTime?.();
-        if (typeof t === 'number') setOffset(id, t);
+        setOffset(id, state.audio[id].currentTime);
     }
 
     function resetOffsets() {
@@ -411,12 +541,11 @@
         const lines = QUESTIONS.map((q, i) =>
             `Mashup ${i + 1} (${q.answer}): id '${q.id}', offset: ${q.offset}`
         );
-        const el = document.getElementById('exportOutput');
-        el.textContent = lines.join('\n');
-        el.style.display = 'block';
-        navigator.clipboard.writeText(el.textContent).catch(() => {});
+        const out = document.getElementById('exportOutput');
+        out.textContent = lines.join('\n');
+        out.style.display = 'block';
+        navigator.clipboard.writeText(out.textContent).catch(() => {});
     }
-
     // ---- Answers ----
 
     function toggleAnswer(id) {
@@ -445,10 +574,17 @@
                         <span class="offset-display" data-offset-key="${q.id}">${fmtTime(q.offset)}</span>
                         <button class="offset-btn" onclick="adjustOffset('${q.id}', 1)">+1</button>
                         <button class="offset-btn" onclick="adjustOffset('${q.id}', 5)">+5</button>
-                        <button class="offset-btn" onclick="useCurrentTime('${q.id}')" title="Set the start to where the video is now">Use current</button>
+                        <button class="offset-btn" onclick="useCurrentTime('${q.id}')" title="Set the start to the playhead position">Use current</button>
                     </div>
                 </div>
-                <div class="player-frame"><div id="player_${q.id}"></div></div>
+                <div class="track" data-track="${q.id}">
+                    <button class="track-toggle" data-toggle="${q.id}" onclick="togglePlay('${q.id}')" title="Play / pause from the playhead">&#9654;</button>
+                    <span class="track-time" data-time="${q.id}">0:00 / 0:00</span>
+                    <div class="timeline" data-timeline="${q.id}" title="Click or drag to seek">
+                        <div class="timeline-clip" data-clipwin="${q.id}"></div>
+                        <div class="timeline-head" data-head="${q.id}"></div>
+                    </div>
+                </div>
                 <div class="card-footer">
                     <span class="answer-badge" data-answer="${q.id}" onclick="toggleAnswer('${q.id}')">Show Answer</span>
                     <div class="progress-bar-container">
@@ -457,11 +593,15 @@
                 </div>
             `;
             container.appendChild(card);
+            setupTimeline(q.id);
+            setupAudio(q);
+        });
+        document.getElementById('clipLength').addEventListener('input', () => {
+            QUESTIONS.forEach(q => updateClipWindow(q.id));
         });
     }
 
     render();
     </script>
-    <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
